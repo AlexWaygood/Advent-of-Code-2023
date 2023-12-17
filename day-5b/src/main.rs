@@ -1,4 +1,8 @@
-use std::{cmp::{max,min}, fs::read_to_string, ops::Range, collections::HashMap, iter::zip};
+use std::cmp::{max,min};
+use std::collections::HashMap;
+use std::fs::read_to_string;
+use std::iter::zip;
+use std::ops::Range;
 
 use cached::proc_macro::cached;
 
@@ -93,7 +97,7 @@ struct RangeMap {
 
 
 fn _check_range_mapping_consistency(
-    initial: &HashMap<Range<u64>, Range<u64>>, 
+    initial: &HashMap<Range<u64>, Range<u64>>,
     transformed: &HashMap<Range<u64>, Range<u64>>
 ) {
     assert_eq!(
@@ -118,20 +122,24 @@ fn progress_range_pair(
     let mut range_mapping = HashMap::new();
     let (ref seed_range, ref intermediate_range) = pair;
     assert_eq!(
-        (seed_range.end - seed_range.start), 
+        (seed_range.end - seed_range.start),
         (intermediate_range.end - intermediate_range.start)
     );
     for row in &input_map.rows {
         let overlap = find_range_overlap(&intermediate_range, &row.source_range());
         if overlap.end > overlap.start {
-            let new_key_start = seed_range.start + (overlap.start - intermediate_range.start);
+            let new_key_start = seed_range.start
+                + (overlap.start - intermediate_range.start);
             let new_key_end = seed_range.end - (intermediate_range.end - overlap.end);
             let new_key = new_key_start..new_key_end;
             range_mapping.insert(new_key, row.convert_range(overlap));
         };
     };
     if range_mapping.len() == 0 {
-        return HashMap::from_iter([(seed_range.to_owned().to_owned(), intermediate_range.to_owned().to_owned())])
+        return HashMap::from_iter([(
+            seed_range.to_owned().to_owned(),
+            intermediate_range.to_owned().to_owned()
+        )])
     };
     let mut keys = range_mapping
         .keys()
@@ -145,7 +153,9 @@ fn progress_range_pair(
     if seed_range.start < first_key.start {
         let startfill = seed_range.start..first_key.start;
         let startfill_value =
-            intermediate_range.start..(intermediate_range.start + startfill.end - startfill.start);
+            intermediate_range.start..(
+                intermediate_range.start + startfill.end - startfill.start
+            );
         range_mapping.insert(startfill, startfill_value);
     }
     if seed_range.end > last_key.end {
@@ -159,13 +169,15 @@ fn progress_range_pair(
             continue;
         };
         let in_between = this_range.end..next_range.start;
-        let in_between_value_start = intermediate_range.start + (in_between.start - seed_range.start);
-        let in_between_value_end = intermediate_range.end - (seed_range.end - in_between.end);
+        let in_between_value_start = intermediate_range.start
+            + (in_between.start - seed_range.start);
+        let in_between_value_end = intermediate_range.end
+            - (seed_range.end - in_between.end);
         range_mapping.insert(in_between, in_between_value_start..in_between_value_end);
     }
     _check_range_mapping_consistency(
         &HashMap::from_iter([(
-            seed_range.to_owned().to_owned(), 
+            seed_range.to_owned().to_owned(),
             intermediate_range.to_owned().to_owned()
         )]),
         &range_mapping
@@ -191,7 +203,9 @@ fn progress_range_map(
             range_mapping.insert(key, value);
         };
     };
-    let kind = MapKind{source: GardeningThing::Seed, destination: relevant_input_map.kind.destination};
+    let kind = MapKind{
+        source: GardeningThing::Seed, destination: relevant_input_map.kind.destination
+    };
     _check_range_mapping_consistency(&current_range_map.mapping, &range_mapping);
     RangeMap {kind, mapping: range_mapping}
 }
@@ -204,7 +218,9 @@ struct InputData {
 
 
 fn seedrange_to_locationrange(input_data: InputData) -> RangeMap {
-    let kind = MapKind {source: GardeningThing::Seed, destination: GardeningThing::Seed};
+    let kind = MapKind {
+        source: GardeningThing::Seed, destination: GardeningThing::Seed
+    };
     let initial_range_map = HashMap::from_iter(
         input_data.seed_ranges.iter().map(|r|(r.clone(), r.clone()))
     );
@@ -246,7 +262,10 @@ fn parse_map_from_input(unparsed_map: &&str) -> InputMap {
             assert!(unparsed_rows.len() > 1);
             let kind_description = first_line.split(" ").next().unwrap();
             let kind = parse_kind_from_input(kind_description);
-            let rows: Vec<InputDataRow> = unparsed_rows.iter().map(parse_row_from_input).collect();
+            let rows: Vec<InputDataRow> = unparsed_rows
+                .iter()
+                .map(parse_row_from_input)
+                .collect();
             InputMap{kind, rows}
         },
         _ => panic!()
