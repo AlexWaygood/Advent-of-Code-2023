@@ -31,6 +31,7 @@ struct PuzzleInput {
 
 fn solve(puzzle_input: PuzzleInput) -> u32 {
     let start_coords = puzzle_input.start_coordinates;
+
     let mut steps = 1;
     let (mut x, mut y) = start_coords;
     let mut coords = (x, y-1);
