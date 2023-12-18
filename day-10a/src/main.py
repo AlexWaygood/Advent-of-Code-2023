@@ -28,7 +28,7 @@ class Pipe(Enum):
     NORTH_EAST = NORTH, EAST
 
 
-INPUT_TO_PIPE = {
+INPUT_TO_PIPE: Final[Mapping[str, Pipe]] = {
     "|": Pipe.NORTH_SOUTH,
     "-": Pipe.EAST_WEST,
     "L": Pipe.NORTH_EAST,
