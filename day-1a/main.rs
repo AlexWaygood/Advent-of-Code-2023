@@ -18,9 +18,9 @@ fn calculate(filename: &str) -> u32 {
                 let calibration_value = (f * 10) + l;
                 total += calibration_value;
             }
-            _ => panic!()
+            _ => panic!(),
         };
-    };
+    }
     return total;
 }
 

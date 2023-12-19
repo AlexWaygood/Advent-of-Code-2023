@@ -82,7 +82,7 @@ fn calculate(filename: &str) -> u32 {
         } else {
             panic!()
         };
-    };
+    }
     return total;
 }
 

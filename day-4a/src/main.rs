@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 use std::fs::read_to_string;
 
-
 struct Card {
     winning_numbers: HashSet<u32>,
     numbers_we_have: HashSet<u32>,
@@ -12,41 +11,39 @@ impl Card {
         let intersection = self.winning_numbers.intersection(&self.numbers_we_have);
         match intersection.collect::<Vec<&u32>>().len() {
             0 => 0,
-            number => 2_u32.pow((number as u32) - 1)
+            number => 2_u32.pow((number as u32) - 1),
         }
     }
 }
-
 
 fn parse_input(filename: &str) -> Vec<Card> {
     let mut cards = Vec::new();
     for line in read_to_string(filename).unwrap().lines() {
         match line.split(": ").collect::<Vec<&str>>()[..] {
-            [_, data] => {
-                match data.split(" | ").collect::<Vec<&str>>()[..] {
-                    [left, right] => {
-                        let winning_numbers = HashSet::<u32>::from_iter(
-                            left.split_whitespace().map(|n|n.parse::<u32>().unwrap())
-                        );
-                        let numbers_we_have = HashSet::<u32>::from_iter(
-                            right.split_whitespace().map(|n|n.parse::<u32>().unwrap())
-                        );
-                        cards.push(Card{winning_numbers, numbers_we_have})
-                    },
-                    _ => panic!()
+            [_, data] => match data.split(" | ").collect::<Vec<&str>>()[..] {
+                [left, right] => {
+                    let winning_numbers = HashSet::<u32>::from_iter(
+                        left.split_whitespace().map(|n| n.parse::<u32>().unwrap()),
+                    );
+                    let numbers_we_have = HashSet::<u32>::from_iter(
+                        right.split_whitespace().map(|n| n.parse::<u32>().unwrap()),
+                    );
+                    cards.push(Card {
+                        winning_numbers,
+                        numbers_we_have,
+                    })
                 }
+                _ => panic!(),
             },
-            _ => panic!()
+            _ => panic!(),
         }
     }
     cards
 }
 
-
 fn solve(filename: &str) -> u32 {
-    parse_input(filename).iter().map(|c|c.total_points()).sum()
+    parse_input(filename).iter().map(|c| c.total_points()).sum()
 }
-
 
 fn main() {
     println!("{}", solve("input.txt"));

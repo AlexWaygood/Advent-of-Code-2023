@@ -14,7 +14,6 @@ enum GardeningThing {
     Location,
 }
 
-
 #[cached]
 fn gardening_thing_from_description(description: String) -> GardeningThing {
     match description.as_str() {
@@ -26,7 +25,7 @@ fn gardening_thing_from_description(description: String) -> GardeningThing {
         "temperature" => GardeningThing::Temperature,
         "humidity" => GardeningThing::Humidity,
         "location" => GardeningThing::Location,
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
@@ -36,23 +35,18 @@ struct MapKind {
 }
 
 impl MapKind {
-    fn from_descriptions(
-        source_description: &str, destination_description: &str
-    ) -> MapKind {
-        MapKind{
+    fn from_descriptions(source_description: &str, destination_description: &str) -> MapKind {
+        MapKind {
             source: gardening_thing_from_description(String::from(source_description)),
-            destination: gardening_thing_from_description(
-                String::from(destination_description)
-            )
+            destination: gardening_thing_from_description(String::from(destination_description)),
         }
     }
 }
 
-
 struct InputDataRow {
     destination_start: u32,
     source_start: u32,
-    range_length: u32
+    range_length: u32,
 }
 
 impl InputDataRow {
@@ -61,10 +55,9 @@ impl InputDataRow {
     }
 }
 
-
 struct Map {
     kind: MapKind,
-    rows: Vec<InputDataRow>
+    rows: Vec<InputDataRow>,
 }
 
 impl Map {
@@ -74,11 +67,10 @@ impl Map {
                 let difference = item - row.source_start;
                 return row.destination_start + difference;
             }
-        };
+        }
         item
     }
 }
-
 
 fn location_from_seed(seed: u32, maps: &Vec<Map>) -> u32 {
     let mut answer = seed;
@@ -86,7 +78,7 @@ fn location_from_seed(seed: u32, maps: &Vec<Map>) -> u32 {
     while thing != &GardeningThing::Location {
         let relevant_map = maps
             .iter()
-            .filter(|m|&m.kind.source == thing)
+            .filter(|m| &m.kind.source == thing)
             .next()
             .unwrap();
         answer = relevant_map.convert(answer);
@@ -95,42 +87,43 @@ fn location_from_seed(seed: u32, maps: &Vec<Map>) -> u32 {
     answer
 }
 
-
 struct InputData {
     seeds: Vec<u32>,
-    maps: Vec<Map>
+    maps: Vec<Map>,
 }
 
 impl InputData {
-    fn seed_locations(&self) -> impl Iterator<Item=u32> + '_ {
-        self.seeds.iter().map(|s| location_from_seed(*s, &self.maps))
+    fn seed_locations(&self) -> impl Iterator<Item = u32> + '_ {
+        self.seeds
+            .iter()
+            .map(|s| location_from_seed(*s, &self.maps))
     }
 }
-
 
 fn parse_row_from_input(unparsed_row: &str) -> InputDataRow {
     match unparsed_row
         .split_whitespace()
         .into_iter()
-        .map(|s|s.parse::<u32>().unwrap())
-        .collect::<Vec<u32>>()[..] {
-            [destination_start, source_start, range_length] => InputDataRow{
-                destination_start, source_start, range_length
-            },
-            _ => panic!()
-        }
-}
-
-
-fn parse_kind_from_input(kind_description: &str) -> MapKind {
-    match kind_description.split("-").collect::<Vec<&str>>()[..] {
-        [source_description, _, destination_description] => MapKind::from_descriptions(
-            source_description, destination_description
-        ),
-        _ => panic!()
+        .map(|s| s.parse::<u32>().unwrap())
+        .collect::<Vec<u32>>()[..]
+    {
+        [destination_start, source_start, range_length] => InputDataRow {
+            destination_start,
+            source_start,
+            range_length,
+        },
+        _ => panic!(),
     }
 }
 
+fn parse_kind_from_input(kind_description: &str) -> MapKind {
+    match kind_description.split("-").collect::<Vec<&str>>()[..] {
+        [source_description, _, destination_description] => {
+            MapKind::from_descriptions(source_description, destination_description)
+        }
+        _ => panic!(),
+    }
+}
 
 fn parse_map_from_input(unparsed_map: &str) -> Map {
     match &unparsed_map.split("\r\n").collect::<Vec<&str>>()[..] {
@@ -141,23 +134,19 @@ fn parse_map_from_input(unparsed_map: &str) -> Map {
             let mut rows = Vec::<InputDataRow>::new();
             for unparsed_row in unparsed_rows {
                 rows.push(parse_row_from_input(&unparsed_row))
-            };
-            Map{kind, rows}
-        },
-        _ => panic!()
+            }
+            Map { kind, rows }
+        }
+        _ => panic!(),
     }
 }
 
-
 fn parse_seeds_from_input(seed_description: &str) -> Vec<u32> {
-    seed_description
-        .split(" ")
-        .collect::<Vec<&str>>()[1..]
+    seed_description.split(" ").collect::<Vec<&str>>()[1..]
         .iter()
-        .map(|s|s.parse::<u32>().unwrap())
+        .map(|s| s.parse::<u32>().unwrap())
         .collect::<Vec<u32>>()
 }
-
 
 fn parse_input(filename: &str) -> InputData {
     let puzzle_input = read_to_string(filename).unwrap();
@@ -168,20 +157,18 @@ fn parse_input(filename: &str) -> InputData {
             let seeds = parse_seeds_from_input(&unparsed_seeds);
             for unparsed_map in unparsed_maps {
                 maps.push(parse_map_from_input(unparsed_map))
-            };
+            }
             seeds
-        },
-        _ => panic!()
+        }
+        _ => panic!(),
     };
-    InputData{seeds, maps}
+    InputData { seeds, maps }
 }
-
 
 fn solve(filename: &str) -> u32 {
     let input_data = parse_input(filename);
     input_data.seed_locations().min().unwrap()
 }
-
 
 fn main() {
     println!("{}", solve("input.txt"));

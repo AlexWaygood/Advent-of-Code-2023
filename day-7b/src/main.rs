@@ -1,4 +1,4 @@
-use std::cmp::{Ordering,Reverse};
+use std::cmp::{Ordering, Reverse};
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::read_to_string;
@@ -19,7 +19,7 @@ enum Card {
     T = 10,
     Q = 11,
     K = 12,
-    A = 13
+    A = 13,
 }
 
 impl fmt::Display for Card {
@@ -33,7 +33,6 @@ impl fmt::Display for Card {
     }
 }
 
-
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy)]
 enum HandCategory {
     HighCard,
@@ -44,7 +43,6 @@ enum HandCategory {
     FourOfAKind,
     FiveOfAKind,
 }
-
 
 #[cached]
 fn determine_hand_category(card_counts: Vec<u8>, num_jokers: u8) -> HandCategory {
@@ -67,10 +65,9 @@ fn determine_hand_category(card_counts: Vec<u8>, num_jokers: u8) -> HandCategory
         ([2, ..], _) => HandCategory::ThreeOfAKind,
         ([..], 1) => HandCategory::OnePair,
         ([..], 0) => HandCategory::HighCard,
-        _ => panic!()
+        _ => panic!(),
     }
 }
-
 
 #[derive(PartialEq, Eq)]
 struct Hand {
@@ -83,15 +80,10 @@ impl Hand {
         let mut counter: HashMap<Card, u8> = HashMap::new();
         for card in &self.cards {
             *counter.entry(*card).or_insert(0) += 1;
-        };
-        let mut counter_values: Vec<u8> = counter
-            .values()
-            .map(|v|v.to_owned())
-            .collect();
-        counter_values.sort_unstable_by_key(|c|Reverse(*c));
-        determine_hand_category(
-            counter_values, *counter.get(&Card::J).unwrap_or(&0_u8)
-        )
+        }
+        let mut counter_values: Vec<u8> = counter.values().map(|v| v.to_owned()).collect();
+        counter_values.sort_unstable_by_key(|c| Reverse(*c));
+        determine_hand_category(counter_values, *counter.get(&Card::J).unwrap_or(&0_u8))
     }
 }
 
@@ -112,16 +104,14 @@ impl PartialOrd for Hand {
     }
 }
 
-
 fn winnings_of_hand(hand: &Hand, rank: u16) -> u32 {
     (hand.bid as u32) * (rank as u32)
 }
 
-
 fn total_winnings(mut hands: Vec<Hand>) -> u32 {
     hands.sort();
     assert!(hands[0].category() == HandCategory::HighCard);
-    assert!(hands[hands.len() -1].category() == HandCategory::FiveOfAKind);
+    assert!(hands[hands.len() - 1].category() == HandCategory::FiveOfAKind);
     hands
         .iter()
         .enumerate()
@@ -129,52 +119,46 @@ fn total_winnings(mut hands: Vec<Hand>) -> u32 {
         .sum()
 }
 
-
 fn parse_input(filename: &str) -> Vec<Hand> {
     let mut hands = Vec::new();
     for line in read_to_string(filename).unwrap().lines() {
-        let [unparsed_hand, unparsed_bid] = match line
-            .split_whitespace()
-            .collect::<Vec<&str>>()[..] {
-                [a, b] => [a, b],
-                _ => panic!()
+        let [unparsed_hand, unparsed_bid] = match line.split_whitespace().collect::<Vec<&str>>()[..]
+        {
+            [a, b] => [a, b],
+            _ => panic!(),
         };
         assert_eq!(unparsed_hand.len(), 5);
         let mut cards: Vec<Card> = Vec::new();
         for char in unparsed_hand.chars() {
-            cards.push(
-                match char {
-                    '2' => Card::Two,
-                    '3' => Card::Three,
-                    '4' => Card::Four,
-                    '5' => Card::Five,
-                    '6' => Card::Six,
-                    '7' => Card::Seven,
-                    '8' => Card::Eight,
-                    '9' => Card::Nine,
-                    'T' => Card::T,
-                    'J' => Card::J,
-                    'Q' => Card::Q,
-                    'K' => Card::K,
-                    'A' => Card::A,
-                    _ => panic!("Unexpected char {}", char)
-                }
-            );
-        };
+            cards.push(match char {
+                '2' => Card::Two,
+                '3' => Card::Three,
+                '4' => Card::Four,
+                '5' => Card::Five,
+                '6' => Card::Six,
+                '7' => Card::Seven,
+                '8' => Card::Eight,
+                '9' => Card::Nine,
+                'T' => Card::T,
+                'J' => Card::J,
+                'Q' => Card::Q,
+                'K' => Card::K,
+                'A' => Card::A,
+                _ => panic!("Unexpected char {}", char),
+            });
+        }
         let bid = unparsed_bid.parse::<u16>().unwrap();
         assert!(bid <= 1000);
-        hands.push(Hand {cards, bid});
-    };
+        hands.push(Hand { cards, bid });
+    }
     assert_eq!(hands.len(), 1000);
     hands
 }
-
 
 fn solve(filename: &str) -> u32 {
     let hands = parse_input(filename);
     total_winnings(hands)
 }
-
 
 fn main() {
     println!("{}", solve("input.txt"));
