@@ -248,7 +248,9 @@ fn progress_range_map(current_range_map: RangeMap, input_data: &InputData) -> Ra
         source: GardeningThing::Seed,
         destination: relevant_input_map.kind.destination,
     };
-    _check_range_mapping_consistency(&current_range_map.mapping, &range_mapping);
+    if cfg!(debug_assertions) {
+        _check_range_mapping_consistency(&current_range_map.mapping, &range_mapping);
+    }
     RangeMap {
         kind,
         mapping: range_mapping,
