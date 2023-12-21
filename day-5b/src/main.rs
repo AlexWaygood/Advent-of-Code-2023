@@ -3,6 +3,10 @@ use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::iter::zip;
 use std::ops::Range;
+use std::str::FromStr;
+
+use ::anyhow;
+use anyhow::{anyhow, bail, Context, Result};
 
 #[derive(PartialEq, Clone, Copy)]
 enum GardeningThing {
@@ -16,17 +20,21 @@ enum GardeningThing {
     Location,
 }
 
-fn gardening_thing_from_description(description: String) -> GardeningThing {
-    match description.as_str() {
-        "seed" => GardeningThing::Seed,
-        "soil" => GardeningThing::Soil,
-        "fertilizer" => GardeningThing::Fertilizer,
-        "water" => GardeningThing::Water,
-        "light" => GardeningThing::Light,
-        "temperature" => GardeningThing::Temperature,
-        "humidity" => GardeningThing::Humidity,
-        "location" => GardeningThing::Location,
-        _ => panic!(),
+impl FromStr for GardeningThing {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> anyhow::Result<Self, Self::Err> {
+        match s {
+            "seed" => Ok(GardeningThing::Seed),
+            "soil" => Ok(GardeningThing::Soil),
+            "fertilizer" => Ok(GardeningThing::Fertilizer),
+            "water" => Ok(GardeningThing::Water),
+            "light" => Ok(GardeningThing::Light),
+            "temperature" => Ok(GardeningThing::Temperature),
+            "humidity" => Ok(GardeningThing::Humidity),
+            "location" => Ok(GardeningThing::Location),
+            _ => Err(anyhow!("Unknown gardening thing {}", s)),
+        }
     }
 }
 
@@ -35,11 +43,16 @@ struct MapKind {
     destination: GardeningThing,
 }
 
-impl MapKind {
-    fn from_descriptions(source_description: &str, destination_description: &str) -> MapKind {
-        MapKind {
-            source: gardening_thing_from_description(String::from(source_description)),
-            destination: gardening_thing_from_description(String::from(destination_description)),
+impl FromStr for MapKind {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.split("-").collect::<Vec<&str>>()[..] {
+            [source_description, _, destination_description] => Ok(MapKind {
+                source: source_description.parse()?,
+                destination: destination_description.parse()?,
+            }),
+            _ => Err(anyhow!("Can't construct a MapKind from {}", s)),
         }
     }
 }
@@ -69,9 +82,53 @@ impl InputDataRow {
     }
 }
 
+impl FromStr for InputDataRow {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s
+            .split_whitespace()
+            .map(|s| s.parse())
+            .collect::<Result<Vec<u64>, _>>()?[..]
+        {
+            [destination_start, source_start, range_length] => Ok(InputDataRow {
+                destination_start,
+                source_start,
+                range_length,
+            }),
+            _ => Err(anyhow!("Couldn't construct an InputDataRow from {}", s)),
+        }
+    }
+}
+
 struct InputMap {
     kind: MapKind,
     rows: Vec<InputDataRow>,
+}
+
+impl FromStr for InputMap {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match &s.split("\n").collect::<Vec<&str>>()[..] {
+            [first_line, unparsed_rows @ ..] => {
+                if unparsed_rows.len() <= 1 {
+                    bail!("Expected there to be two or more rows in the map!")
+                }
+                let kind_description = first_line
+                    .split(" ")
+                    .next()
+                    .context("Expected the first line to have two or more words!")?;
+                let kind: MapKind = kind_description.parse()?;
+                let rows = unparsed_rows
+                    .iter()
+                    .map(|s| s.parse())
+                    .collect::<Result<Vec<InputDataRow>>>()?;
+                Ok(InputMap { kind, rows })
+            }
+            _ => Err(anyhow!("Couldn't construct an InputMap from {}", s)),
+        }
+    }
 }
 
 fn find_range_overlap(x: &Range<u64>, y: &Range<u64>) -> Range<u64> {
@@ -83,6 +140,7 @@ struct RangeMap {
     mapping: HashMap<Range<u64>, Range<u64>>,
 }
 
+#[cfg(debug_assertions)]
 fn _check_range_mapping_consistency(
     initial: &HashMap<Range<u64>, Range<u64>>,
     transformed: &HashMap<Range<u64>, Range<u64>>,
@@ -108,7 +166,7 @@ fn progress_range_pair(
 ) -> HashMap<Range<u64>, Range<u64>> {
     let mut range_mapping = HashMap::new();
     let (ref seed_range, ref intermediate_range) = pair;
-    assert_eq!(
+    debug_assert_eq!(
         (seed_range.end - seed_range.start),
         (intermediate_range.end - intermediate_range.start)
     );
@@ -158,15 +216,17 @@ fn progress_range_pair(
         let in_between_value_end = intermediate_range.end - (seed_range.end - in_between.end);
         range_mapping.insert(in_between, in_between_value_start..in_between_value_end);
     }
-    _check_range_mapping_consistency(
-        &HashMap::from_iter([(
-            seed_range.to_owned().to_owned(),
-            intermediate_range.to_owned().to_owned(),
-        )]),
-        &range_mapping,
-    );
+    if cfg!(debug_assertions) {
+        _check_range_mapping_consistency(
+            &HashMap::from_iter([(
+                seed_range.to_owned().to_owned(),
+                intermediate_range.to_owned().to_owned(),
+            )]),
+            &range_mapping,
+        );
+    }
     if range_mapping.len() > 1 {
-        assert!(range_mapping.iter().any(|(key, value)| key != value));
+        debug_assert!(range_mapping.iter().any(|(key, value)| key != value));
     }
     range_mapping
 }
@@ -178,7 +238,7 @@ fn progress_range_map(current_range_map: RangeMap, input_data: &InputData) -> Ra
         .iter()
         .filter(|m| m.kind.source == current_range_map.kind.destination)
         .next()
-        .unwrap();
+        .expect("Expected input_data.maps to have length of at least 1!");
     for pair in &current_range_map.mapping {
         for (key, value) in progress_range_pair(pair, relevant_input_map) {
             range_mapping.insert(key, value);
@@ -198,6 +258,33 @@ fn progress_range_map(current_range_map: RangeMap, input_data: &InputData) -> Ra
 struct InputData {
     seed_ranges: Vec<Range<u64>>,
     maps: Vec<InputMap>,
+}
+
+impl FromStr for InputData {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match &s.replace("\r\n", "\n").split("\n\n").collect::<Vec<&str>>()[..] {
+            [unparsed_seeds, unparsed_maps @ ..] => {
+                if unparsed_maps.len() <= 1 {
+                    bail!("Expected there to be 2 or more maps!")
+                }
+                let seed_ranges = parse_seed_ranges_from_input(&unparsed_seeds)?;
+                let maps = unparsed_maps
+                    .iter()
+                    .map(|s| s.parse())
+                    .collect::<Result<Vec<InputMap>>>()?;
+                Ok(InputData { seed_ranges, maps })
+            }
+            _ => Err(anyhow!("Couldn't parse the input data!")),
+        }
+    }
+}
+
+fn parse_input(filename: &str) -> InputData {
+    let puzzle_input =
+        read_to_string(filename).expect(format!("Expected file {} to exist", filename).as_str());
+    puzzle_input.parse().unwrap()
 }
 
 fn seedrange_to_locationrange(input_data: InputData) -> RangeMap {
@@ -221,69 +308,18 @@ fn seedrange_to_locationrange(input_data: InputData) -> RangeMap {
     range_map
 }
 
-fn parse_row_from_input(unparsed_row: &&str) -> InputDataRow {
-    match unparsed_row
-        .split_whitespace()
-        .into_iter()
-        .map(|s| s.parse::<u64>().unwrap())
-        .collect::<Vec<u64>>()[..]
-    {
-        [destination_start, source_start, range_length] => InputDataRow {
-            destination_start,
-            source_start,
-            range_length,
-        },
-        _ => panic!(),
-    }
-}
-
-fn parse_kind_from_input(kind_description: &str) -> MapKind {
-    match kind_description.split("-").collect::<Vec<&str>>()[..] {
-        [source_description, _, destination_description] => {
-            MapKind::from_descriptions(source_description, destination_description)
-        }
-        _ => panic!(),
-    }
-}
-
-fn parse_map_from_input(unparsed_map: &&str) -> InputMap {
-    match &unparsed_map.split("\r\n").collect::<Vec<&str>>()[..] {
-        [first_line, unparsed_rows @ ..] => {
-            assert!(unparsed_rows.len() > 1);
-            let kind_description = first_line.split(" ").next().unwrap();
-            let kind = parse_kind_from_input(kind_description);
-            let rows: Vec<InputDataRow> = unparsed_rows.iter().map(parse_row_from_input).collect();
-            InputMap { kind, rows }
-        }
-        _ => panic!(),
-    }
-}
-
-fn parse_seed_ranges_from_input(seed_description: &str) -> Vec<Range<u64>> {
-    seed_description
+fn parse_seed_ranges_from_input(seed_description: &str) -> Result<Vec<Range<u64>>> {
+    Ok(seed_description
         .split(" ")
         .enumerate()
         .filter(|(i, _)| *i != 0_usize)
-        .map(|(_, s)| s.parse::<u64>().unwrap())
-        .collect::<Vec<u64>>()
+        .map(|(_, s)| s.parse::<u64>())
+        .collect::<Result<Vec<u64>, _>>()?
         .windows(2)
         .enumerate()
         .filter(|(i, _)| (i % 2) == 0)
         .map(|(_, w)| w[0]..(w[0] + w[1]))
-        .collect()
-}
-
-fn parse_input(filename: &str) -> InputData {
-    let puzzle_input = read_to_string(filename).unwrap();
-    match &puzzle_input.split("\r\n\r\n").collect::<Vec<&str>>()[..] {
-        [unparsed_seeds, unparsed_maps @ ..] => {
-            assert!(unparsed_maps.len() > 1);
-            let seed_ranges = parse_seed_ranges_from_input(&unparsed_seeds);
-            let maps: Vec<InputMap> = unparsed_maps.iter().map(parse_map_from_input).collect();
-            InputData { seed_ranges, maps }
-        }
-        _ => panic!(),
-    }
+        .collect())
 }
 
 fn solve(filename: &str) -> u64 {
