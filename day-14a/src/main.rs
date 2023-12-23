@@ -83,7 +83,7 @@ impl Platform {
                         self.tile_map.insert(other_coord, Tile::Empty);
                         break;
                     }
-                    if y == self.max_y {
+                    if following_y == self.max_y {
                         break 'column_loop;
                     }
                 }
@@ -93,17 +93,12 @@ impl Platform {
 
     fn calculate_load(&self) -> u32 {
         let mut answer = 0;
-        let y_to_load_map = HashMap::<u32, u32>::from_iter(
-            (1..(self.max_y + 1))
-                .rev()
-                .enumerate()
-                .map(|(i, y)| (i.try_into().unwrap(), y)),
-        );
+        let y_to_load_map = Vec::from_iter((1..(self.max_y + 1)).rev());
         for x in 0..self.max_x {
             for y in 0..self.max_y {
                 let coord = Coordinate(x, y);
                 if self.tile_map.get(&coord).unwrap() == &Tile::RoundRock {
-                    answer += y_to_load_map.get(&y).unwrap();
+                    answer += y_to_load_map[y as usize];
                 }
             }
         }
