@@ -23,11 +23,6 @@ class Condition(Enum):
         return self.name[0]
 
 
-def find_conditions(string: str) -> Iterator[Condition]:
-    for char in re.sub(r"\.+", ".", string).strip("."):
-        yield Condition(char)
-
-
 @cache
 def num_possible_fits(
     contiguous_broken: tuple[int, ...], conditions: tuple[Condition, ...]
@@ -131,6 +126,11 @@ def num_possible_fits(
 
 
 REPEATS: Final = 5
+
+
+def find_conditions(string: str) -> Iterator[Condition]:
+    for char in re.sub(r"\.+", ".", string).strip("."):
+        yield Condition(char)
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
