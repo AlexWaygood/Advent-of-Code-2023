@@ -24,7 +24,7 @@ type RowOrColumn = HashSet<(usize, char)>;
 fn is_match(left: &[RowOrColumn], right: &[RowOrColumn]) -> bool {
     let mut nearly_equal_one_found = false;
     for (l, r) in zip(left, right.iter().rev()) {
-        match l.symmetric_difference(r).map(|_| 1).sum() {
+        match l.symmetric_difference(r).count() {
             0 => continue,
             1 => unreachable!("Should be unreachable!"),
             2 => {

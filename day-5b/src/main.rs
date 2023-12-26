@@ -313,14 +313,12 @@ fn seedrange_to_locationrange(input_data: InputData) -> RangeMap {
 fn parse_seed_ranges_from_input(seed_description: &str) -> Result<Vec<Range<u64>>> {
     Ok(seed_description
         .split(" ")
-        .enumerate()
-        .filter(|(i, _)| *i != 0_usize)
-        .map(|(_, s)| s.parse::<u64>())
+        .skip(1)
+        .map(|s| s.parse::<u64>())
         .collect::<Result<Vec<u64>, _>>()?
         .windows(2)
-        .enumerate()
-        .filter(|(i, _)| (i % 2) == 0)
-        .map(|(_, w)| w[0]..(w[0] + w[1]))
+        .step_by(2)
+        .map(|w| w[0]..(w[0] + w[1]))
         .collect())
 }
 
