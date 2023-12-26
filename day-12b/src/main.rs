@@ -1,4 +1,9 @@
-use std::{fmt::Display, fs::read_to_string, ops::Not, str::FromStr};
+use std::collections::HashSet;
+use std::fmt::Display;
+use std::fs::read_to_string;
+use std::iter::repeat;
+use std::ops::Not;
+use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Context, Ok, Result};
 use cached::proc_macro::cached;
@@ -80,10 +85,7 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
 
     if grouped_by_operational[0].1 < first_contiguous {
         let first_operational_index = (grouped_by_operational[0].1 + 1) as usize;
-        if conditions[..first_operational_index]
-            .iter()
-            .any(|c| c == &Condition::DAMAGED)
-        {
+        if conditions[..first_operational_index].contains(&Condition::DAMAGED) {
             return 0;
         }
         return num_possible_fits(
@@ -98,10 +100,7 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
         let last_operational_index = conditions.len()
             - (grouped_by_operational[grouped_by_operational.len() - 1].1 as usize)
             - 1;
-        if conditions[last_operational_index..]
-            .iter()
-            .any(|c| c == &Condition::DAMAGED)
-        {
+        if conditions[last_operational_index..].contains(&Condition::DAMAGED) {
             return 0;
         }
         return num_possible_fits(
@@ -123,20 +122,21 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
                 }
 
                 if let Some(slice) = conditions.get((i + first_contiguous)..) {
-                    if slice.iter().any(|c| c == &Condition::DAMAGED) {
+                    if slice.contains(&Condition::DAMAGED) {
                         continue;
                     }
                 }
 
                 match conditions.get(i..(i + first_contiguous)) {
-                    Some(to_test) => {
-                        if to_test.len() < first_contiguous {
+                    Some(slice) => {
+                        if slice.len() < first_contiguous {
                             break;
                         }
-                        if to_test.iter().any(|c| c == &Condition::OPERATIONAL) {
+                        let to_test: HashSet<&Condition> = HashSet::from_iter(slice);
+                        if to_test.contains(&Condition::OPERATIONAL) {
                             continue;
                         }
-                        if to_test.iter().all(|c| c != &Condition::DAMAGED) {
+                        if to_test.contains(&Condition::DAMAGED).not() {
                             continue;
                         }
                     }
@@ -209,9 +209,9 @@ impl FromStr for Row {
             [left, right] => (left, right),
             _ => bail!("Couldn't parse {} into a row", s),
         };
-        let conditions = find_conditions([&left].iter().cycle().take(REPEATS).join("?").as_str())?;
+        let conditions = find_conditions(repeat(left).take(REPEATS).join("?").as_str())?;
         let mut contiguous_broken_groups = vec![];
-        for val in [&right].iter().cycle().take(REPEATS).join(",").split(",") {
+        for val in repeat(right).take(REPEATS).join(",").split(",") {
             contiguous_broken_groups.push(val.parse()?)
         }
         Ok(Row {

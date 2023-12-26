@@ -55,10 +55,7 @@ def num_possible_fits(
     # If the first group of (Damaged + Unknown) doesn't fit the first contiguous group:
     if grouped_by_operational[0][1] < first_contiguous:
         first_operational_index = grouped_by_operational[0][1] + 1
-        if any(
-            condition is Condition.DAMAGED
-            for condition in conditions[:first_operational_index]
-        ):
+        if Condition.DAMAGED in conditions[:first_operational_index]:
             return 0
         return num_possible_fits(
             contiguous_broken, conditions[first_operational_index:]
@@ -67,10 +64,7 @@ def num_possible_fits(
     # If the last group of (Damaged + Unknown) doesn't fit the last contiguous group:
     if grouped_by_operational[-1][1] < contiguous_broken[-1]:
         last_operational_index = len(conditions) - grouped_by_operational[-1][1] - 1
-        if any(
-            condition is Condition.DAMAGED
-            for condition in conditions[last_operational_index:]
-        ):
+        if Condition.DAMAGED in conditions[last_operational_index:]:
             return 0
         return num_possible_fits(contiguous_broken, conditions[:last_operational_index])
 
@@ -81,17 +75,15 @@ def num_possible_fits(
             for i in range(len(conditions)):
                 if i != 0 and conditions[i - 1] is Condition.DAMAGED:
                     break
-                if any(
-                    condition is Condition.DAMAGED
-                    for condition in conditions[(i + first_contiguous) :]
-                ):
+                if Condition.DAMAGED in conditions[(i + first_contiguous) :]:
                     continue
-                to_test = conditions[i : (i + first_contiguous)]
-                if len(to_test) < first_contiguous:
+                slice_to_test = conditions[i : (i + first_contiguous)]
+                if len(slice_to_test) < first_contiguous:
                     break
-                if any(condition is Condition.OPERATIONAL for condition in to_test):
+                to_test = set(slice_to_test)
+                if Condition.OPERATIONAL in to_test:
                     continue
-                if not any(condition is Condition.DAMAGED for condition in to_test):
+                if Condition.DAMAGED not in to_test:
                     continue
                 answer += 1
         else:
@@ -117,9 +109,7 @@ def num_possible_fits(
             remaining = conditions[(i + first_contiguous + 1) :]
             answer += num_possible_fits(contiguous_broken[1:], remaining)
 
-        if all(
-            condition is Condition.UNKNOWN for condition in conditions[:range_to_test]
-        ):
+        if set(conditions[:range_to_test]) == {Condition.UNKNOWN}:
             answer += num_possible_fits(contiguous_broken, conditions[range_to_test:])
 
     return answer
