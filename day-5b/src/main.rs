@@ -316,9 +316,8 @@ fn parse_seed_ranges_from_input(seed_description: &str) -> Result<Vec<Range<u64>
         .skip(1)
         .map(|s| s.parse::<u64>())
         .collect::<Result<Vec<u64>, _>>()?
-        .windows(2)
-        .step_by(2)
-        .map(|w| w[0]..(w[0] + w[1]))
+        .chunks(2)
+        .map(|chunk| chunk[0]..(chunk[0] + chunk[1]))
         .collect())
 }
 
