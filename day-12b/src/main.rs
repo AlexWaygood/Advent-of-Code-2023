@@ -10,7 +10,7 @@ use cached::proc_macro::cached;
 use itertools::Itertools;
 use regex;
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 enum Condition {
     DAMAGED,
     UNKNOWN,
@@ -61,8 +61,12 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
         .iter()
         .group_by(|c| c.is_operational())
         .into_iter()
-        .map(|(operational, group_iter)| (operational, group_iter.map(|_| 1).sum()))
+        .map(|(operational, group_iter)| (operational, group_iter.count()))
         .collect();
+    debug_assert!(grouped_by_operational[0].0.not());
+    debug_assert!(grouped_by_operational[grouped_by_operational.len() - 1]
+        .0
+        .not());
 
     if (contiguous_broken.iter().sum::<u32>() as usize)
         > grouped_by_operational
@@ -74,12 +78,17 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
         return 0;
     }
 
-    let grouped_by_condition: Vec<(&Condition, u32)> = conditions
+    let grouped_by_condition: Vec<(&Condition, usize)> = conditions
         .iter()
         .group_by(|c| c.to_owned())
         .into_iter()
-        .map(|(condition, group_iter)| (condition, group_iter.map(|_| 1).sum()))
+        .map(|(condition, group_iter)| (condition, group_iter.count()))
         .collect();
+    debug_assert_ne!(grouped_by_condition[0].0, &Condition::OPERATIONAL);
+    debug_assert_ne!(
+        grouped_by_condition[grouped_by_condition.len() - 1].0,
+        &Condition::OPERATIONAL
+    );
 
     let first_contiguous = contiguous_broken[0] as usize;
 
