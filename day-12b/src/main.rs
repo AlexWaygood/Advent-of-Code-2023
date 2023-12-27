@@ -189,11 +189,11 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
 fn find_conditions(string: &str) -> Result<Vec<Condition>> {
     let re = regex::Regex::new(r"\.+").unwrap();
     let modded_string = re.replace_all(string, ".");
-    let mut result = vec![];
-    for c in modded_string.trim_matches('.').chars() {
-        result.push(c.to_string().as_str().parse()?)
-    }
-    Ok(result)
+    modded_string
+        .trim_matches('.')
+        .chars()
+        .map(|c| c.to_string().as_str().parse())
+        .collect::<Result<Vec<Condition>>>()
 }
 
 #[derive(Clone)]
@@ -230,18 +230,16 @@ impl FromStr for Row {
     }
 }
 
-fn parse_input(filename: &str) -> Result<Vec<Row>> {
-    let input_file =
-        read_to_string(filename).context(format!("Expected {} to exist!", filename))?;
-    input_file.lines().map(|s| s.parse()).collect()
+fn read_input(filename: &str) -> Result<String> {
+    read_to_string(filename).context(format!("Expected {} to exist!", filename))
 }
 
 fn solve(filename: &str) -> usize {
-    let mut answer = 0;
-    for row in parse_input(filename).unwrap() {
-        answer += row.num_possible_arrangements()
-    }
-    answer
+    read_input(filename)
+        .unwrap()
+        .lines()
+        .map(|line| Row::from_str(line).unwrap().num_possible_arrangements())
+        .sum()
 }
 
 fn main() {
