@@ -40,7 +40,7 @@ impl FromStr for Operation {
     fn from_str(s: &str) -> Result<Self> {
         match s.chars().collect::<Vec<char>>()[..] {
             [.., '-'] => Ok(Operation::RemoveLens(s[..s.len() - 1].to_string())),
-            [.., '=', focal_length] => Ok(Operation::InsertLens(
+            [.., '=', focal_length @ '1'..='9'] => Ok(Operation::InsertLens(
                 s[..s.len() - 2].to_string(),
                 focal_length.to_string().as_str().parse::<u8>()?,
             )),
@@ -71,15 +71,24 @@ impl Box {
     fn apply_operation(&mut self, operation: Operation) {
         match operation {
             Operation::RemoveLens(label) => {
-                self.label_to_lens.remove(&label);
-                if let Some(index) = self.index_to_label.iter().position(|l| l == &label) {
+                if self.label_to_lens.remove(&label).is_some() {
+                    let index = self
+                        .index_to_label
+                        .iter()
+                        .position(|l| l == &label)
+                        .expect(format!(
+                            "Expected {} to be present in `index_to_label`, given it was present in `label_to_lens`!",
+                            label,
+                        ).as_str()
+                    );
                     self.index_to_label.remove(index);
                 }
             }
             Operation::InsertLens(label, focal_length) => {
-                if let None = self
+                if self
                     .label_to_lens
                     .insert(label.to_owned(), Lens { focal_length })
+                    .is_none()
                 {
                     self.index_to_label.push(label)
                 }
@@ -87,32 +96,34 @@ impl Box {
         }
     }
 
-    fn lenses(&self) -> Vec<(&String, &Lens)> {
+    fn focusing_power(&self, box_number: usize) -> usize {
         self.index_to_label
             .iter()
-            .map(|label| self.label_to_lens.get_key_value(label).unwrap())
-            .collect()
-    }
-
-    #[cfg(test)]
-    fn lenses_copy(&self) -> Vec<(String, Lens)> {
-        self.lenses()
-            .iter()
-            .map(|(label, lens)| (label.to_owned().to_owned(), *lens.to_owned()))
-            .collect()
-    }
-
-    fn focusing_power(&self, box_number: usize) -> usize {
-        self.lenses()
-            .iter()
             .enumerate()
-            .map(|(i, (_, lens))| (box_number + 1) * (i + 1) * (lens.focal_length as usize))
+            .map(|(i, label)| {
+                (box_number + 1)
+                    * (i + 1)
+                    * (self.label_to_lens.get(label).unwrap().focal_length as usize)
+            })
             .sum()
     }
 
     #[cfg(test)]
+    fn lenses_copy(&self) -> Vec<(String, Lens)> {
+        self.index_to_label
+            .iter()
+            .map(|label| {
+                (
+                    label.to_owned(),
+                    self.label_to_lens.get(label).unwrap().to_owned(),
+                )
+            })
+            .collect()
+    }
+
+    #[cfg(test)]
     fn is_empty(&self) -> bool {
-        self.lenses().is_empty()
+        self.index_to_label.is_empty()
     }
 }
 
@@ -250,7 +261,7 @@ mod tests {
             box_array.boxes[0].lenses_copy(),
             lens_vec(&[("rn", 1), ("cm", 2)])
         );
-        assert_eq!(box_array.boxes[1].lenses(), vec![]);
+        assert_eq!(box_array.boxes[1].lenses_copy(), vec![]);
 
         box_array.apply_operation(operation("pc=4"));
         assert_eq!(box_array.non_empty_boxes(), [0, 3]);
