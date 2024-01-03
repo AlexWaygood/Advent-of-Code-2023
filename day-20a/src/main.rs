@@ -19,10 +19,10 @@ struct PulseRequest {
 trait Module {
     fn name(&self) -> &str;
     fn connections(&self) -> &Vec<String>;
-    fn receive_pulse(&mut self, kind: PulseKind, from_: String) -> Option<PulseRequest>;
-    fn send_pulse(&self, kind: PulseKind) -> Option<PulseRequest> {
+    fn receive_pulse(&mut self, kind: &PulseKind, from_: &str) -> Option<PulseRequest>;
+    fn send_pulse(&self, kind: &PulseKind) -> Option<PulseRequest> {
         Some(PulseRequest {
-            kind,
+            kind: *kind,
             sender: self.name().to_string(),
         })
     }
@@ -53,16 +53,16 @@ impl Module for FlipFlopModule {
         &self._connections
     }
 
-    fn receive_pulse(&mut self, kind: PulseKind, _: String) -> Option<PulseRequest> {
+    fn receive_pulse(&mut self, kind: &PulseKind, _: &str) -> Option<PulseRequest> {
         match (self.is_on, kind) {
             (_, PulseKind::High) => None,
             (true, PulseKind::Low) => {
                 self.is_on = false;
-                self.send_pulse(PulseKind::Low)
+                self.send_pulse(&PulseKind::Low)
             }
             (false, PulseKind::Low) => {
                 self.is_on = true;
-                self.send_pulse(PulseKind::High)
+                self.send_pulse(&PulseKind::High)
             }
         }
     }
@@ -93,13 +93,13 @@ impl Module for ConjunctionModule {
         &self._connections
     }
 
-    fn receive_pulse(&mut self, kind: PulseKind, from_: String) -> Option<PulseRequest> {
-        debug_assert!(self.memory.contains_key(&from_));
-        self.memory.insert(from_, kind);
+    fn receive_pulse(&mut self, kind: &PulseKind, from_: &str) -> Option<PulseRequest> {
+        debug_assert!(self.memory.contains_key(from_));
+        self.memory.insert(from_.to_string(), *kind);
         if self.memory.values().all(|k| k == &PulseKind::High) {
-            self.send_pulse(PulseKind::Low)
+            self.send_pulse(&PulseKind::Low)
         } else {
-            self.send_pulse(PulseKind::High)
+            self.send_pulse(&PulseKind::High)
         }
     }
 }
@@ -125,7 +125,7 @@ impl Module for BroadcastModule {
         &self._connections
     }
 
-    fn receive_pulse(&mut self, kind: PulseKind, _: String) -> Option<PulseRequest> {
+    fn receive_pulse(&mut self, kind: &PulseKind, _: &str) -> Option<PulseRequest> {
         self.send_pulse(kind)
     }
 }
@@ -153,7 +153,7 @@ impl Module for UntypedModule {
         self._name.as_str()
     }
 
-    fn receive_pulse(&mut self, _: PulseKind, _: String) -> Option<PulseRequest> {
+    fn receive_pulse(&mut self, _: &PulseKind, _: &str) -> Option<PulseRequest> {
         None
     }
 }
@@ -202,7 +202,7 @@ fn push_button(puzzle_input: &mut HashMap<String, Box<dyn Module>>) -> PulseStat
     let first_request = puzzle_input
         .get_mut("broadcaster")
         .expect("Expected there to be a broadcaster in this map!")
-        .receive_pulse(PulseKind::Low, String::from("button"));
+        .receive_pulse(&PulseKind::Low, "button");
     let Some(first_request) = first_request else {
         panic!("Wasn't expecting this to be None!")
     };
@@ -228,7 +228,7 @@ fn push_button(puzzle_input: &mut HashMap<String, Box<dyn Module>>) -> PulseStat
             if let Some(new_request) = puzzle_input
                 .get_mut(&conn_name)
                 .unwrap()
-                .receive_pulse(request.kind, request.sender.to_owned())
+                .receive_pulse(&request.kind, &request.sender)
             {
                 pulse_requests.push_back(new_request)
             }
