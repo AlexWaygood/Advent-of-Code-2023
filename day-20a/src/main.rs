@@ -71,7 +71,7 @@ impl Module for FlipFlopModule {
 struct ConjunctionModule {
     _name: String,
     _connections: Vec<String>,
-    _memory: HashMap<String, PulseKind>,
+    memory: HashMap<String, PulseKind>,
 }
 
 impl ConjunctionModule {
@@ -79,7 +79,7 @@ impl ConjunctionModule {
         Self {
             _name: name.to_string(),
             _connections: Vec::from(connections),
-            _memory: HashMap::from_iter(inputs.iter().map(|s| (s.to_owned(), PulseKind::Low))),
+            memory: HashMap::from_iter(inputs.iter().map(|s| (s.to_owned(), PulseKind::Low))),
         }
     }
 }
@@ -94,9 +94,9 @@ impl Module for ConjunctionModule {
     }
 
     fn receive_pulse(&mut self, kind: PulseKind, from_: String) -> Option<PulseRequest> {
-        debug_assert!(self._memory.contains_key(&from_));
-        self._memory.insert(from_, kind);
-        if self._memory.values().all(|k| k == &PulseKind::High) {
+        debug_assert!(self.memory.contains_key(&from_));
+        self.memory.insert(from_, kind);
+        if self.memory.values().all(|k| k == &PulseKind::High) {
             self.send_pulse(PulseKind::Low)
         } else {
             self.send_pulse(PulseKind::High)
