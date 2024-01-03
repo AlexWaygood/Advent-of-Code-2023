@@ -42,23 +42,18 @@ impl FromStr for Part {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        let (mut x, mut m, mut a, mut ess) = (None, None, None, None);
+        let mut data = HashMap::new();
         let sections = s[1..(s.len() - 1)].split(",");
         for section in sections {
             let split_section = Vec::from_iter(section.split("="));
             let rating = u32::from_str(split_section[split_section.len() - 1])?;
-            match split_section[0] {
-                "x" => x = Some(rating),
-                "m" => m = Some(rating),
-                "a" => a = Some(rating),
-                "s" => ess = Some(rating),
-                c => bail!("Don't know how to deal with {}=", c),
-            }
+            data.insert(split_section[0], rating);
         }
-        match (x, m, a, ess) {
-            (Some(x), Some(m), Some(a), Some(ess)) => Ok(Part { x, m, a, s: ess }),
-            _ => bail!("At least one of {{xmas}} wasn't present in the string!"),
-        }
+        let x = *data.get("x").context("Expected 'x' to be present in the part description!")?;
+        let m = *data.get("m").context("Expected 'm' to be present in the part description!")?;
+        let a = *data.get("a").context("Expected 'a' to be present in the part description!")?;
+        let s = *data.get("s").context("Expected 's' to be present in the part description!")?;
+        Ok(Self {x, m, a, s})
     }
 }
 
@@ -271,16 +266,17 @@ fn solve(filename: &str) -> u32 {
     for part in input.parts {
         let mut outcome = Decision::OtherWorkflow("in".to_string());
         loop {
-            let s = match outcome {
+            match outcome {
                 Decision::Accept => {
                     answer += part.score();
                     break;
                 }
                 Decision::Reject => break,
-                Decision::OtherWorkflow(ref s) => s,
-            };
-            let workflow = input.workflow_map.get(s).unwrap();
-            outcome = workflow.process(part)
+                Decision::OtherWorkflow(ref s) => {
+                    let workflow = input.workflow_map.get(s).unwrap();
+                    outcome = workflow.process(part)
+                },
+            }
         }
     }
     answer
