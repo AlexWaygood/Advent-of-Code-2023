@@ -234,7 +234,7 @@ fn push_button(puzzle_input: &mut HashMap<String, Box<dyn Module>>) -> PulseStat
             }
         }
     }
-    debug_assert!(statistics.high_pulses_sent > 0 || statistics.low_pulses_sent > 0);
+    debug_assert!(statistics.high_pulses_sent > 0 || statistics.low_pulses_sent > 1);
     statistics
 }
 
