@@ -54,18 +54,17 @@ impl Module for FlipFlopModule {
     }
 
     fn receive_pulse(&mut self, kind: PulseKind, _: String) -> Option<PulseRequest> {
-        let pulse_kind = match (self.is_on, kind) {
+        match (self.is_on, kind) {
             (_, PulseKind::High) => None,
             (true, PulseKind::Low) => {
                 self.is_on = false;
-                Some(PulseKind::Low)
+                self.send_pulse(PulseKind::Low)
             }
             (false, PulseKind::Low) => {
                 self.is_on = true;
-                Some(PulseKind::High)
+                self.send_pulse(PulseKind::High)
             }
-        };
-        pulse_kind.and_then(|k| self.send_pulse(k))
+        }
     }
 }
 
@@ -97,14 +96,11 @@ impl Module for ConjunctionModule {
     fn receive_pulse(&mut self, kind: PulseKind, from_: String) -> Option<PulseRequest> {
         debug_assert!(self._memory.contains_key(&from_));
         self._memory.insert(from_, kind);
-        let kind_to_send = {
-            if self._memory.values().all(|k| k == &PulseKind::High) {
-                PulseKind::Low
-            } else {
-                PulseKind::High
-            }
-        };
-        self.send_pulse(kind_to_send)
+        if self._memory.values().all(|k| k == &PulseKind::High) {
+            self.send_pulse(PulseKind::Low)
+        } else {
+            self.send_pulse(PulseKind::High)
+        }
     }
 }
 
