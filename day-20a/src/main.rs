@@ -318,7 +318,7 @@ fn parse_input(input_lines: Vec<&str>) -> Result<HashMap<String, Box<dyn Module>
                 let inputs = &lines
                     .iter()
                     .filter(|l| l.connections.contains(&name))
-                    .map(|l| l.kind.name().to_owned())
+                    .map(|l| l.kind.name())
                     .collect::<Vec<String>>();
                 (
                     name.to_owned(),
