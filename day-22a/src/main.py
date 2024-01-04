@@ -1,6 +1,5 @@
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
-from functools import cached_property
 from itertools import product, starmap
 from operator import attrgetter
 from typing import NamedTuple, Self, final
@@ -21,11 +20,9 @@ class Brick:
     min_z: int
     max_z: int
 
-    def x_range(self) -> range:
-        return range(self.min_x, self.max_x + 1)
-
-    def y_range(self) -> range:
-        return range(self.min_y, self.max_y + 1)
+    def __post_init__(self) -> None:
+        self._x_range = range(self.min_x, self.max_x + 1)
+        self._y_range = range(self.min_y, self.max_y + 1)
 
     def z_range(self) -> range:
         return range(self.min_z, self.max_z + 1)
@@ -43,12 +40,8 @@ class Brick:
         self.min_z -= 1
         self.max_z -= 1
 
-    @cached_property
-    def is_vertical_brick(self) -> bool:
-        return len(self.z_range()) == 1
-
     def xy_points(self) -> Iterator[XYPoint]:
-        return starmap(XYPoint, product(self.x_range(), self.y_range()))
+        return starmap(XYPoint, product(self._x_range, self._y_range))
 
     @classmethod
     def from_string(cls, string: str) -> Self:
