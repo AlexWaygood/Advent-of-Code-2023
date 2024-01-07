@@ -16,6 +16,12 @@ enum Direction {
     Left,
 }
 
+impl Direction {
+    fn all() -> HashSet<Direction> {
+        HashSet::from_iter(Direction::iter())
+    }
+}
+
 #[derive(Debug, Hash, PartialEq, Eq, EnumIs)]
 enum Tile {
     Path,
@@ -26,7 +32,7 @@ enum Tile {
 impl Tile {
     fn available_directions(&self) -> HashSet<Direction> {
         match self {
-            Tile::Path => HashSet::from_iter(Direction::iter()),
+            Tile::Path => Direction::all(),
             Tile::Slope(direction) => HashSet::from([*direction]),
             Tile::Forest => panic!("Looks like we accidentally stepped onto a `Forest` tile!"),
         }
@@ -96,7 +102,7 @@ impl Point {
     }
 
     fn available_directions(&self, max_x: &i16, max_y: &i16) -> HashSet<Direction> {
-        let mut directions = HashSet::from_iter(Direction::iter());
+        let mut directions = Direction::all();
         let Point { x, y } = self;
         if x == &0 {
             directions.remove(&Direction::Left);
@@ -131,7 +137,7 @@ fn possible_next_points(
     ));
     let available_directions_from_point = point.available_directions(&grid.max_x, &grid.max_y);
     let available_directions_from_tile = tile.available_directions();
-    let result = HashSet::from_iter(
+    HashSet::from_iter(
         available_directions_from_point
             .intersection(&available_directions_from_tile)
             .map(|direction| point.go(direction))
@@ -146,11 +152,7 @@ fn possible_next_points(
                         ))
                         .is_forest()
             }),
-    );
-    debug_assert!(!result
-        .iter()
-        .any(|point| grid.map.get(point).is_some_and(|tile| tile.is_forest())));
-    result
+    )
 }
 
 struct Grid {
@@ -215,8 +217,7 @@ impl FromStr for Grid {
 
 const START_POINT: Point = Point { x: 1, y: 0 };
 
-fn longest_route_from(point: &Point, grid: &Grid, route_so_far: HashSet<Point>) -> HashSet<Point> {
-    let mut route = route_so_far.clone();
+fn longest_route_from(point: &Point, grid: &Grid, mut route: HashSet<Point>) -> HashSet<Point> {
     let mut possibilities = possible_next_points(point, grid, &route);
     while possibilities.len() == 1 {
         let next_point = *possibilities.iter().next().unwrap();
@@ -231,11 +232,7 @@ fn longest_route_from(point: &Point, grid: &Grid, route_so_far: HashSet<Point>) 
     }
     let mut biggest_possibility = HashSet::new();
     for possibility in possibilities {
-        let new_route = HashSet::from_iter(
-            route
-                .union(&HashSet::from([possibility]))
-                .map(|point| *point),
-        );
+        let new_route = &route | &HashSet::from([possibility]);
         let route_from_there = longest_route_from(&possibility, &grid, new_route);
         if route_from_there.len() > biggest_possibility.len() {
             biggest_possibility = route_from_there;
@@ -263,8 +260,6 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use std::{collections::HashSet, str::FromStr};
-
-    use strum::IntoEnumIterator;
 
     use crate::{load_input, solve, Direction, Grid, Point, Tile, START_POINT};
 
@@ -295,9 +290,7 @@ mod tests {
 
     #[test]
     fn test_enum_iteration() {
-        let direction_set: HashSet<Direction> = HashSet::from_iter(Direction::iter());
-        assert_eq!(direction_set.len(), Direction::iter().count());
-        assert_eq!(direction_set.len(), 4)
+        assert_eq!(Direction::all().len(), 4)
     }
 
     #[test]
