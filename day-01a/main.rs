@@ -6,8 +6,8 @@ fn calculate(filename: &str) -> u32 {
         let mut first = None;
         let mut last = None;
         for char in line.chars() {
-            if char.is_digit(10) {
-                if first == None {
+            if char.is_ascii_digit() {
+                if first.is_none() {
                     first = char.to_digit(10)
                 };
                 last = char.to_digit(10);
@@ -21,7 +21,7 @@ fn calculate(filename: &str) -> u32 {
             _ => panic!(),
         };
     }
-    return total;
+    total
 }
 
 fn main() {

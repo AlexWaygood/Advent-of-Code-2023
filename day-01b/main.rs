@@ -20,11 +20,11 @@ fn calculate(filename: &str) -> u32 {
 
         // find first, iterating forwards:
         for i in 0..line_length {
-            if first != None {
+            if first.is_some() {
                 break;
             };
 
-            if chars[i].is_digit(10) {
+            if chars[i].is_ascii_digit() {
                 first = chars[i].to_digit(10);
             } else if chars[i..].starts_with(&one) {
                 first = Some(1)
@@ -49,11 +49,11 @@ fn calculate(filename: &str) -> u32 {
 
         // find last, iterating backwards:
         for i in (0..line_length).rev() {
-            if last != None {
+            if last.is_some() {
                 break;
             };
 
-            if chars[i].is_digit(10) {
+            if chars[i].is_ascii_digit() {
                 last = chars[i].to_digit(10);
             } else if chars[i..].starts_with(&one) {
                 last = Some(1)
@@ -83,7 +83,7 @@ fn calculate(filename: &str) -> u32 {
             panic!()
         };
     }
-    return total;
+    total
 }
 
 fn main() {
