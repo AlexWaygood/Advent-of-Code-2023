@@ -86,7 +86,7 @@ impl Solution {
             return;
         }
         self.visited_nodes.insert(node);
-        let node_contents = self.node_map.get(&node).unwrap();
+        let node_contents = self.node_map[&node];
         match (node_contents, direction) {
             ('.', _) => self.visit_node(node.go(direction), direction),
             ('/', Direction::Down) => self.visit_node(node.go(Direction::Left), Direction::Left),

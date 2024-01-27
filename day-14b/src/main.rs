@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{collections::HashMap, fs::read_to_string, str::FromStr};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{bail, Context, Result};
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 enum Tile {
@@ -10,15 +10,15 @@ enum Tile {
     Empty,
 }
 
-impl FromStr for Tile {
-    type Err = anyhow::Error;
+impl TryFrom<char> for Tile {
+    type Error = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn try_from(s: char) -> Result<Self> {
         match s {
-            "O" => Ok(Tile::RoundRock),
-            "#" => Ok(Tile::CubeRock),
-            "." => Ok(Tile::Empty),
-            _ => Err(anyhow!("Can't create a tile from {}", s)),
+            'O' => Ok(Tile::RoundRock),
+            '#' => Ok(Tile::CubeRock),
+            '.' => Ok(Tile::Empty),
+            _ => bail!("Can't create a tile from {}", s),
         }
     }
 }
@@ -26,11 +26,11 @@ impl FromStr for Tile {
 impl fmt::Display for Tile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let c = match self {
-            &Tile::RoundRock => "O",
-            &Tile::CubeRock => "#",
-            &Tile::Empty => ".",
+            Tile::RoundRock => "O",
+            Tile::CubeRock => "#",
+            Tile::Empty => ".",
         };
-        write!(f, "{}", c)
+        write!(f, "{c}")
     }
 }
 
@@ -41,17 +41,15 @@ impl Coordinate {
     fn from_usize_pair(x: usize, y: usize) -> Result<Self> {
         match (x.try_into(), y.try_into()) {
             (Ok(x1), Ok(x2)) => Ok(Coordinate(x1, x2)),
-            _ => {
-                let e = anyhow!("Failed to construct coordinate from ({}, {})", x, y);
-                Err(e)
-            }
+            _ => bail!("Failed to construct coordinate from ({}, {})", x, y),
         }
     }
 }
 
 impl fmt::Display for Coordinate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Coordinate({}, {})", self.0, self.1)
+        let Coordinate(x, y) = self;
+        write!(f, "Coordinate({x}, {y})")
     }
 }
 
@@ -72,23 +70,23 @@ impl Platform {
                     break;
                 }
                 let coord = Coordinate(x, y);
-                let this_tile = self.tile_map.get(&coord).unwrap();
-                if this_tile != &Tile::Empty {
+                let this_tile = self.tile_map[&coord];
+                if this_tile != Tile::Empty {
                     y += 1;
                     continue;
                 }
                 for following_y in (y + 1)..self.max_y {
                     let other_coord = Coordinate(x, following_y);
-                    let other_tile = self.tile_map.get(&other_coord).unwrap();
+                    let other_tile = self.tile_map[&other_coord];
                     match other_tile {
-                        &Tile::CubeRock => {
+                        Tile::CubeRock => {
                             if following_y == (self.max_y - 1) {
                                 break 'outer_column_loop;
                             };
                             y = following_y + 1;
                             continue 'outer_column_loop;
                         }
-                        &Tile::RoundRock => {
+                        Tile::RoundRock => {
                             self.tile_map.insert(coord, Tile::RoundRock);
                             self.tile_map.insert(other_coord, Tile::Empty);
                             if following_y == (self.max_y - 1) {
@@ -96,7 +94,7 @@ impl Platform {
                             };
                             break;
                         }
-                        &Tile::Empty => {
+                        Tile::Empty => {
                             if following_y == (self.max_y - 1) {
                                 break 'outer_column_loop;
                             };
@@ -117,23 +115,23 @@ impl Platform {
                     break;
                 }
                 let coord = Coordinate(x, y);
-                let this_tile = self.tile_map.get(&coord).unwrap();
-                if this_tile != &Tile::Empty {
+                let this_tile = self.tile_map[&coord];
+                if this_tile != Tile::Empty {
                     y -= 1;
                     continue;
                 }
                 for following_y in (0..y).rev() {
                     let other_coord = Coordinate(x, following_y);
-                    let other_tile = self.tile_map.get(&other_coord).unwrap();
+                    let other_tile = self.tile_map[&other_coord];
                     match other_tile {
-                        &Tile::CubeRock => {
+                        Tile::CubeRock => {
                             if following_y == 0 {
                                 break 'outer_column_loop;
                             };
                             y = following_y - 1;
                             continue 'outer_column_loop;
                         }
-                        &Tile::RoundRock => {
+                        Tile::RoundRock => {
                             self.tile_map.insert(coord, Tile::RoundRock);
                             self.tile_map.insert(other_coord, Tile::Empty);
                             if following_y == 0 {
@@ -141,7 +139,7 @@ impl Platform {
                             };
                             break;
                         }
-                        &Tile::Empty => {
+                        Tile::Empty => {
                             if following_y == 0 {
                                 break 'outer_column_loop;
                             };
@@ -162,23 +160,23 @@ impl Platform {
                     break;
                 }
                 let coord = Coordinate(x, y);
-                let this_tile = self.tile_map.get(&coord).unwrap();
-                if this_tile != &Tile::Empty {
+                let this_tile = self.tile_map[&coord];
+                if this_tile != Tile::Empty {
                     x += 1;
                     continue;
                 }
                 for following_x in (x + 1)..self.max_x {
                     let other_coord = Coordinate(following_x, y);
-                    let other_tile = self.tile_map.get(&other_coord).unwrap();
+                    let other_tile = self.tile_map[&other_coord];
                     match other_tile {
-                        &Tile::CubeRock => {
+                        Tile::CubeRock => {
                             if following_x == (self.max_x - 1) {
                                 break 'outer_column_loop;
                             };
                             x = following_x + 1;
                             continue 'outer_column_loop;
                         }
-                        &Tile::RoundRock => {
+                        Tile::RoundRock => {
                             self.tile_map.insert(coord, Tile::RoundRock);
                             self.tile_map.insert(other_coord, Tile::Empty);
                             if following_x == (self.max_x - 1) {
@@ -186,7 +184,7 @@ impl Platform {
                             };
                             break;
                         }
-                        &Tile::Empty => {
+                        Tile::Empty => {
                             if following_x == (self.max_x - 1) {
                                 break 'outer_column_loop;
                             };
@@ -207,23 +205,23 @@ impl Platform {
                     break;
                 }
                 let coord = Coordinate(x, y);
-                let this_tile = self.tile_map.get(&coord).unwrap();
-                if this_tile != &Tile::Empty {
+                let this_tile = self.tile_map[&coord];
+                if this_tile != Tile::Empty {
                     x -= 1;
                     continue;
                 }
                 for following_x in (0..x).rev() {
                     let other_coord = Coordinate(following_x, y);
-                    let other_tile = self.tile_map.get(&other_coord).unwrap();
+                    let other_tile = self.tile_map[&other_coord];
                     match other_tile {
-                        &Tile::CubeRock => {
+                        Tile::CubeRock => {
                             if following_x == 0 {
                                 break 'outer_column_loop;
                             };
                             x = following_x - 1;
                             continue 'outer_column_loop;
                         }
-                        &Tile::RoundRock => {
+                        Tile::RoundRock => {
                             self.tile_map.insert(coord, Tile::RoundRock);
                             self.tile_map.insert(other_coord, Tile::Empty);
                             if following_x == 0 {
@@ -231,7 +229,7 @@ impl Platform {
                             };
                             break;
                         }
-                        &Tile::Empty => {
+                        Tile::Empty => {
                             if following_x == 0 {
                                 break 'outer_column_loop;
                             };
@@ -257,32 +255,25 @@ impl Platform {
         for x in 0..self.max_x {
             for y in 0..self.max_y {
                 let coord = Coordinate(x, y);
-                if self.tile_map.get(&coord).unwrap() == &Tile::RoundRock {
+                if self.tile_map[&coord] == Tile::RoundRock {
                     answer += y_to_load_map[y as usize];
                 }
             }
         }
         answer
     }
-
-    // Convenience method for easier testing:
-    #[cfg(test)]
-    fn to_string(&self) -> String {
-        String::from(format!("{}", self).trim())
-    }
-
 }
 
 impl FromStr for Platform {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        let lines: Vec<&str> = s.lines().collect();
+        let lines: Vec<_> = s.lines().collect();
         let mut tile_map = HashMap::new();
         for (y, row) in lines.iter().enumerate() {
             for (x, c) in row.chars().enumerate() {
-                let coordinate = Coordinate::from_usize_pair(x, y).unwrap();
-                let tile = c.to_string().parse().unwrap();
+                let coordinate = Coordinate::from_usize_pair(x, y)?;
+                let tile = Tile::try_from(c)?;
                 tile_map.insert(coordinate, tile);
             }
         }
@@ -292,7 +283,7 @@ impl FromStr for Platform {
                 max_x,
                 max_y,
             }),
-            _ => Err(anyhow!("Couldn't parse the puzzle input :(")),
+            _ => bail!("Couldn't parse the puzzle input :("),
         }
     }
 }
@@ -303,19 +294,19 @@ impl fmt::Display for Platform {
         for y in 0..self.max_y {
             for x in 0..self.max_x {
                 let coordinate = Coordinate(x, y);
-                let tile = self.tile_map.get(&coordinate).unwrap();
-                s.push_str(&format!("{}", tile))
+                let tile = self.tile_map[&coordinate];
+                s.push_str(&format!("{tile}"))
             }
-            s.push_str("\n")
+            s.push('\n')
         }
-        f.write_str(&s)
+        f.write_str(s.trim())
     }
 }
 
 fn parse_input(filename: &str) -> Result<Platform> {
-    Ok(read_to_string(filename)
+    read_to_string(filename)
         .context(format!("Expected {} to exist!", filename))?
-        .parse()?)
+        .parse()
 }
 
 // Given to us in the puzzle description
@@ -334,7 +325,7 @@ fn solve(filename: &str) -> u32 {
         let cycle_step = i % CYCLE_LENGTH;
         if cycle_step == 0 {
             if this_record == previous_record {
-                break
+                break;
             }
             (previous_record, this_record) = (this_record, previous_record)
         }
