@@ -19,8 +19,8 @@ fn gather_surrounding_chars(
         answer.extend(next_line[left..=right].chars());
     }
     let line_as_bytes = line.as_bytes();
-    answer.insert(line_as_bytes[left] as char);
-    answer.insert(line_as_bytes[right] as char);
+    answer.insert(line_as_bytes[left].into());
+    answer.insert(line_as_bytes[right].into());
     answer
 }
 
