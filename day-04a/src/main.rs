@@ -9,7 +9,7 @@ struct Card {
 impl Card {
     fn total_points(&self) -> u32 {
         let intersection = self.winning_numbers.intersection(&self.numbers_we_have);
-        match intersection.collect::<Vec<&u32>>().len() {
+        match intersection.count() {
             0 => 0,
             number => 2_u32.pow((number as u32) - 1),
         }
@@ -17,26 +17,22 @@ impl Card {
 }
 
 fn parse_input(filename: &str) -> Vec<Card> {
-    let mut cards = Vec::new();
+    let mut cards = vec![];
     for line in read_to_string(filename).unwrap().lines() {
-        match line.split(": ").collect::<Vec<&str>>()[..] {
-            [_, data] => match data.split(" | ").collect::<Vec<&str>>()[..] {
-                [left, right] => {
-                    let winning_numbers = HashSet::<u32>::from_iter(
-                        left.split_whitespace().map(|n| n.parse::<u32>().unwrap()),
-                    );
-                    let numbers_we_have = HashSet::<u32>::from_iter(
-                        right.split_whitespace().map(|n| n.parse::<u32>().unwrap()),
-                    );
-                    cards.push(Card {
-                        winning_numbers,
-                        numbers_we_have,
-                    })
-                }
-                _ => panic!(),
-            },
-            _ => panic!(),
-        }
+        let [_, data] = line.split(": ").collect::<Vec<&str>>()[..] else {
+            panic!()
+        };
+        let [left, right] = data.split(" | ").collect::<Vec<&str>>()[..] else {
+            panic!()
+        };
+        let winning_numbers =
+            HashSet::<u32>::from_iter(left.split_whitespace().map(|n| n.parse::<u32>().unwrap()));
+        let numbers_we_have =
+            HashSet::<u32>::from_iter(right.split_whitespace().map(|n| n.parse::<u32>().unwrap()));
+        cards.push(Card {
+            winning_numbers,
+            numbers_we_have,
+        })
     }
     cards
 }
