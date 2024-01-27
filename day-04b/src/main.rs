@@ -15,8 +15,8 @@ struct Card {
 #[cached]
 fn copied_cards_won(card: Card) -> Range<u32> {
     let intersection = card.winning_numbers.intersection(&card.numbers_we_have);
-    let num_won = intersection.collect::<Vec<&u32>>().len();
-    (card.card_id + 1)..(card.card_id + 1 + num_won as u32)
+    let num_won: u32 = intersection.count().try_into().unwrap();
+    (card.card_id + 1)..(card.card_id + 1 + num_won)
 }
 
 fn parse_input(filename: &str) -> BTreeMap<u32, Card> {
@@ -50,7 +50,7 @@ fn parse_input(filename: &str) -> BTreeMap<u32, Card> {
 fn compute_total_scratchcards(cards: BTreeMap<u32, Card>) -> u32 {
     let mut counter = cards
         .values()
-        .map(|c| (c, 1_u32))
+        .map(|c| (c, 1))
         .collect::<HashMap<&Card, u32>>();
 
     for card in cards.values() {
