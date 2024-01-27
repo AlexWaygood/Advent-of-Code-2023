@@ -1,8 +1,11 @@
-use std::{fs::read_to_string, ops::Range};
+use std::fs::read_to_string;
+use std::num::ParseIntError;
+use std::ops::Range;
+use std::str::FromStr;
 
-use cached::proc_macro::cached;
+use anyhow::{bail, Result};
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 enum GardeningThing {
     Seed,
     Soil,
@@ -14,18 +17,21 @@ enum GardeningThing {
     Location,
 }
 
-#[cached]
-fn gardening_thing_from_description(description: String) -> GardeningThing {
-    match description.as_str() {
-        "seed" => GardeningThing::Seed,
-        "soil" => GardeningThing::Soil,
-        "fertilizer" => GardeningThing::Fertilizer,
-        "water" => GardeningThing::Water,
-        "light" => GardeningThing::Light,
-        "temperature" => GardeningThing::Temperature,
-        "humidity" => GardeningThing::Humidity,
-        "location" => GardeningThing::Location,
-        _ => panic!(),
+impl FromStr for GardeningThing {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "seed" => Ok(Self::Seed),
+            "soil" => Ok(Self::Soil),
+            "fertilizer" => Ok(Self::Fertilizer),
+            "water" => Ok(Self::Water),
+            "light" => Ok(Self::Light),
+            "temperature" => Ok(Self::Temperature),
+            "humidity" => Ok(Self::Humidity),
+            "location" => Ok(Self::Location),
+            _ => bail!("Don't know how to create a `Gardening thing from {}", s),
+        }
     }
 }
 
@@ -34,11 +40,16 @@ struct MapKind {
     destination: GardeningThing,
 }
 
-impl MapKind {
-    fn from_descriptions(source_description: &str, destination_description: &str) -> MapKind {
-        MapKind {
-            source: gardening_thing_from_description(String::from(source_description)),
-            destination: gardening_thing_from_description(String::from(destination_description)),
+impl FromStr for MapKind {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s.split('-').collect::<Vec<_>>()[..] {
+            [source_description, _, destination_description] => Ok(MapKind {
+                source: GardeningThing::from_str(source_description)?,
+                destination: GardeningThing::from_str(destination_description)?,
+            }),
+            _ => bail!("Expected there to only be one '-' character!"),
         }
     }
 }
@@ -72,15 +83,30 @@ impl Map {
     }
 }
 
-fn location_from_seed(seed: u32, maps: &Vec<Map>) -> u32 {
+impl FromStr for Map {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Map> {
+        match s.lines().collect::<Vec<_>>().split_first() {
+            Some((first_line, unparsed_rows @ [_, ..])) => {
+                let kind_description = first_line.split(' ').next().unwrap();
+                let kind = MapKind::from_str(kind_description)?;
+                let mut rows = Vec::with_capacity(unparsed_rows.len());
+                for unparsed_row in unparsed_rows {
+                    rows.push(parse_row_from_input(unparsed_row)?)
+                }
+                Ok(Map { kind, rows })
+            }
+            _ => bail!("Expected there to be at least one line"),
+        }
+    }
+}
+
+fn location_from_seed(seed: u32, maps: &[Map]) -> u32 {
     let mut answer = seed;
     let mut thing = &GardeningThing::Seed;
     while thing != &GardeningThing::Location {
-        let relevant_map = maps
-            .iter()
-            .filter(|m| &m.kind.source == thing)
-            .next()
-            .unwrap();
+        let relevant_map = maps.iter().find(|m| &m.kind.source == thing).unwrap();
         answer = relevant_map.convert(answer);
         thing = &relevant_map.kind.destination;
     }
@@ -100,73 +126,52 @@ impl InputData {
     }
 }
 
-fn parse_row_from_input(unparsed_row: &str) -> InputDataRow {
+impl FromStr for InputData {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let input = s.replace("\r\n", "\n");
+        let [unparsed_seeds, unparsed_maps @ ..] = &input.split("\n\n").collect::<Vec<_>>()[..]
+        else {
+            bail!("Expected there to be a double-newline separating the first line from the rest")
+        };
+        let seeds = parse_seeds_from_input(unparsed_seeds)?;
+        debug_assert!(unparsed_maps.len() > 1);
+        let maps = unparsed_maps
+            .iter()
+            .map(|unparsed_map| Map::from_str(unparsed_map))
+            .collect::<Result<Vec<_>>>()?;
+        Ok(InputData { seeds, maps })
+    }
+}
+
+fn parse_row_from_input(unparsed_row: &str) -> Result<InputDataRow> {
     match unparsed_row
         .split_whitespace()
-        .into_iter()
-        .map(|s| s.parse::<u32>().unwrap())
-        .collect::<Vec<u32>>()[..]
+        .map(|s| s.parse())
+        .collect::<std::result::Result<Vec<u32>, _>>()?[..]
     {
-        [destination_start, source_start, range_length] => InputDataRow {
+        [destination_start, source_start, range_length] => Ok(InputDataRow {
             destination_start,
             source_start,
             range_length,
-        },
-        _ => panic!(),
+        }),
+        _ => bail!("Expected the row to have exactly three items"),
     }
 }
 
-fn parse_kind_from_input(kind_description: &str) -> MapKind {
-    match kind_description.split("-").collect::<Vec<&str>>()[..] {
-        [source_description, _, destination_description] => {
-            MapKind::from_descriptions(source_description, destination_description)
-        }
-        _ => panic!(),
-    }
-}
-
-fn parse_map_from_input(unparsed_map: &str) -> Map {
-    match &unparsed_map.split("\r\n").collect::<Vec<&str>>()[..] {
-        [first_line, unparsed_rows @ ..] => {
-            assert!(unparsed_rows.len() > 1);
-            let kind_description = first_line.split(" ").next().unwrap();
-            let kind = parse_kind_from_input(kind_description);
-            let mut rows = Vec::<InputDataRow>::new();
-            for unparsed_row in unparsed_rows {
-                rows.push(parse_row_from_input(&unparsed_row))
-            }
-            Map { kind, rows }
-        }
-        _ => panic!(),
-    }
-}
-
-fn parse_seeds_from_input(seed_description: &str) -> Vec<u32> {
-    seed_description.split(" ").collect::<Vec<&str>>()[1..]
-        .iter()
-        .map(|s| s.parse::<u32>().unwrap())
-        .collect::<Vec<u32>>()
-}
-
-fn parse_input(filename: &str) -> InputData {
-    let puzzle_input = read_to_string(filename).unwrap();
-    let mut maps = Vec::<Map>::new();
-    let seeds = match &puzzle_input.split("\r\n\r\n").collect::<Vec<&str>>()[..] {
-        [unparsed_seeds, unparsed_maps @ ..] => {
-            assert!(unparsed_maps.len() > 1);
-            let seeds = parse_seeds_from_input(&unparsed_seeds);
-            for unparsed_map in unparsed_maps {
-                maps.push(parse_map_from_input(unparsed_map))
-            }
-            seeds
-        }
-        _ => panic!(),
-    };
-    InputData { seeds, maps }
+fn parse_seeds_from_input(seed_description: &str) -> std::result::Result<Vec<u32>, ParseIntError> {
+    seed_description
+        .split(' ')
+        .skip(1)
+        .map(|s| s.parse())
+        .collect()
 }
 
 fn solve(filename: &str) -> u32 {
-    let input_data = parse_input(filename);
+    let input =
+        read_to_string(filename).unwrap_or_else(|_| panic!("Expected {} to exist", filename));
+    let input_data = InputData::from_str(&input).unwrap();
     input_data.seed_locations().min().unwrap()
 }
 
