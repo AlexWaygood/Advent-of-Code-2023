@@ -12,14 +12,12 @@ enum Decision {
     OtherWorkflow(String),
 }
 
-impl FromStr for Decision {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self> {
+impl From<&str> for Decision {
+    fn from(s: &str) -> Self {
         match s {
-            "A" => Ok(Self::Accept),
-            "R" => Ok(Self::Reject),
-            _ => Ok(Self::OtherWorkflow(s.to_string())),
+            "A" => Self::Accept,
+            "R" => Self::Reject,
+            _ => Self::OtherWorkflow(s.to_string()),
         }
     }
 }
@@ -43,17 +41,18 @@ impl FromStr for Part {
 
     fn from_str(s: &str) -> Result<Self> {
         let mut data = HashMap::new();
-        let sections = s[1..(s.len() - 1)].split(",");
+        let sections = s[1..(s.len() - 1)].split(',');
         for section in sections {
-            let split_section = Vec::from_iter(section.split("="));
+            let split_section = Vec::from_iter(section.split('='));
             let rating = u32::from_str(split_section[split_section.len() - 1])?;
             data.insert(split_section[0], rating);
         }
-        let x = *data.get("x").context("Expected 'x' to be present in the part description!")?;
-        let m = *data.get("m").context("Expected 'm' to be present in the part description!")?;
-        let a = *data.get("a").context("Expected 'a' to be present in the part description!")?;
-        let s = *data.get("s").context("Expected 's' to be present in the part description!")?;
-        Ok(Self {x, m, a, s})
+        Ok(Self {
+            x: data["x"],
+            m: data["m"],
+            a: data["a"],
+            s: data["s"],
+        })
     }
 }
 
@@ -64,14 +63,17 @@ enum Compare {
     NoOp,
 }
 
-impl FromStr for Compare {
-    type Err = anyhow::Error;
+impl TryFrom<&char> for Compare {
+    type Error = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self> {
-        match s {
-            ">" => Ok(Self::Gt),
-            "<" => Ok(Self::Lt),
-            _ => bail!("Don't know how to create a `Compare` variant from {}", s),
+    fn try_from(value: &char) -> Result<Self> {
+        match value {
+            '>' => Ok(Self::Gt),
+            '<' => Ok(Self::Lt),
+            _ => bail!(
+                "Don't know how to create a `Compare` variant from {}",
+                value
+            ),
         }
     }
 }
@@ -84,16 +86,16 @@ enum Attr {
     S,
 }
 
-impl FromStr for Attr {
-    type Err = anyhow::Error;
+impl TryFrom<&char> for Attr {
+    type Error = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self> {
-        match s {
-            "x" => Ok(Attr::X),
-            "m" => Ok(Attr::M),
-            "a" => Ok(Attr::A),
-            "s" => Ok(Attr::S),
-            _ => bail!("Don't know how to create an `Attr` from {}", s),
+    fn try_from(value: &char) -> Result<Self> {
+        match value {
+            'x' => Ok(Attr::X),
+            'm' => Ok(Attr::M),
+            'a' => Ok(Attr::A),
+            's' => Ok(Attr::S),
+            _ => bail!("Don't know how to create an `Attr` from {}", value),
         }
     }
 }
@@ -160,18 +162,18 @@ impl FromStr for Rule {
     fn from_str(s: &str) -> Result<Self> {
         match &s.chars().collect::<Vec<char>>()[..] {
             [attr @ ('x' | 'm' | 'a' | 's'), cmp @ ('>' | '<'), rest @ ..] => {
-                let attr = Attr::from_str(attr.to_string().as_str())?;
-                let cmp = Compare::from_str(cmp.to_string().as_str())?;
+                let attr = Attr::try_from(attr)?;
+                let cmp = Compare::try_from(cmp)?;
                 let rest = String::from_iter(rest);
-                let [digits, outcome] = rest.split(":").collect::<Vec<&str>>()[..] else {
+                let [digits, outcome] = rest.split(':').collect::<Vec<&str>>()[..] else {
                     bail!("Don't know how to create a Rule from {}", s)
                 };
                 let value = u32::from_str(digits)?;
-                let outcome = Decision::from_str(outcome)?;
+                let outcome = Decision::from(outcome);
                 Ok(Rule::new(attr, cmp, value, outcome))
             }
             chars @ [..] => {
-                let outcome = Decision::from_str(String::from_iter(chars).as_str())?;
+                let outcome = Decision::from(String::from_iter(chars).as_str());
                 Ok(Rule::noop(outcome))
             }
         }
@@ -189,12 +191,12 @@ impl FromStr for Workflow {
     fn from_str(s: &str) -> Result<Self> {
         let s = s.trim();
         let s = &s[..(s.len() - 1)];
-        let [name, rule_strings] = s.split("{").collect::<Vec<&str>>()[..] else {
+        let [name, rule_strings] = s.split('{').collect::<Vec<&str>>()[..] else {
             bail!("Unexpected number of braces in {}", s)
         };
         let rules = rule_strings
-            .split(",")
-            .map(|rs| Rule::from_str(rs))
+            .split(',')
+            .map(Rule::from_str)
             .collect::<Result<Vec<Rule>>>()?;
         Ok(Workflow {
             name: name.to_string(),
@@ -216,8 +218,8 @@ impl Workflow {
 
 impl Display for Workflow {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let num_rules = self.rules.len();
-        write!(f, "Workflow(\"{}\", <{} rules>)", self.name, num_rules)
+        let Workflow { name, rules } = self;
+        write!(f, "Workflow(\"{name}\", <{} rules>)", rules.len())
     }
 }
 
@@ -255,9 +257,9 @@ impl FromStr for PuzzleInput {
 }
 
 fn parse_input(filename: &str) -> Result<PuzzleInput> {
-    let input_string =
-        read_to_string(filename).context(format!("Expected {} to exist as a file!", filename))?;
-    Ok(PuzzleInput::from_str(&input_string)?)
+    let input_string = read_to_string(filename)
+        .with_context(|| format!("Expected {} to exist as a file!", filename))?;
+    PuzzleInput::from_str(&input_string)
 }
 
 fn solve(filename: &str) -> u32 {
@@ -272,10 +274,7 @@ fn solve(filename: &str) -> u32 {
                     break;
                 }
                 Decision::Reject => break,
-                Decision::OtherWorkflow(ref s) => {
-                    let workflow = input.workflow_map.get(s).unwrap();
-                    outcome = workflow.process(part)
-                },
+                Decision::OtherWorkflow(ref s) => outcome = input.workflow_map[s].process(part),
             }
         }
     }

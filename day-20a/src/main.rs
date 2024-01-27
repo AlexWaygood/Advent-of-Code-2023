@@ -213,12 +213,7 @@ fn push_button(puzzle_input: &mut HashMap<String, Box<dyn Module>>) -> PulseStat
             break;
         };
         let connections = Vec::from_iter(
-            puzzle_input
-                .get(&request.sender)
-                .expect(&format!(
-                    "Expected {} to be present in the map!",
-                    &request.sender
-                ))
+            puzzle_input[&request.sender]
                 .connections()
                 .iter()
                 .map(|s| s.to_owned()),
@@ -256,9 +251,9 @@ enum ModuleKind {
 impl ModuleKind {
     fn name(&self) -> String {
         match &self {
-            &ModuleKind::FlipFlop(name) => name.to_owned(),
-            &ModuleKind::Conjunction(name) => name.to_owned(),
-            &ModuleKind::Broadcaster => String::from("broadcaster"),
+            ModuleKind::FlipFlop(name) => name.to_owned(),
+            ModuleKind::Conjunction(name) => name.to_owned(),
+            ModuleKind::Broadcaster => String::from("broadcaster"),
         }
     }
 }
@@ -312,17 +307,17 @@ fn parse_input(input_lines: Vec<&str>) -> Result<HashMap<String, Box<dyn Module>
             ),
             ModuleKind::FlipFlop(name) => (
                 name.to_string(),
-                Box::new(FlipFlopModule::new(&name, &line.connections)),
+                Box::new(FlipFlopModule::new(name, &line.connections)),
             ),
             ModuleKind::Conjunction(name) => {
                 let inputs = &lines
                     .iter()
-                    .filter(|l| l.connections.contains(&name))
+                    .filter(|l| l.connections.contains(name))
                     .map(|l| l.kind.name())
                     .collect::<Vec<String>>();
                 (
                     name.to_owned(),
-                    Box::new(ConjunctionModule::new(&name, &line.connections, inputs)),
+                    Box::new(ConjunctionModule::new(name, &line.connections, inputs)),
                 )
             }
         };
@@ -333,7 +328,7 @@ fn parse_input(input_lines: Vec<&str>) -> Result<HashMap<String, Box<dyn Module>
         for name in &line.connections {
             modules
                 .entry(name.to_owned())
-                .or_insert(Box::new(UntypedModule::new(&name)));
+                .or_insert(Box::new(UntypedModule::new(name)));
         }
     }
 
@@ -341,8 +336,7 @@ fn parse_input(input_lines: Vec<&str>) -> Result<HashMap<String, Box<dyn Module>
 }
 
 fn main() {
-    let input = read_to_string("input.txt")
-        .expect(format!("Expected 'input.txt' to exist as a file!").as_str());
+    let input = read_to_string("input.txt").expect("Expected 'input.txt' to exist as a file!");
     let modules = parse_input(Vec::from_iter(input.lines())).unwrap();
     println!("{}", solve(modules))
 }

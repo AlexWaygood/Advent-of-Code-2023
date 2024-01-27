@@ -131,27 +131,14 @@ fn possible_next_points(
     route_so_far: &HashSet<Point>,
 ) -> HashSet<Point> {
     debug_assert_ne!(point, &grid.end_point);
-    let tile = grid.map.get(point).expect(&format!(
-        "Expected point {} to be present in the map!",
-        point
-    ));
+    let tile = &grid.map[point];
     let available_directions_from_point = point.available_directions(&grid.max_x, &grid.max_y);
     let available_directions_from_tile = tile.available_directions();
     HashSet::from_iter(
         available_directions_from_point
             .intersection(&available_directions_from_tile)
             .map(|direction| point.go(direction))
-            .filter(|point| {
-                !route_so_far.contains(point)
-                    && !grid
-                        .map
-                        .get(point)
-                        .expect(&format!(
-                            "Expected point {} to be present in the map!",
-                            point
-                        ))
-                        .is_forest()
-            }),
+            .filter(|point| !route_so_far.contains(point) && !grid.map[point].is_forest()),
     )
 }
 
@@ -183,7 +170,7 @@ impl Display for Grid {
             let mut row = String::new();
             for x in 0..=self.max_x {
                 let point = Point::new(x, y);
-                let tile = self.map.get(&point).unwrap(); // TODO: fix
+                let tile = &self.map[&point];
                 row.push_str(&format!("{}", tile))
             }
             debug_assert_eq!(row.len(), ((self.max_x + 1) as usize));
@@ -233,7 +220,7 @@ fn longest_route_from(point: &Point, grid: &Grid, mut route: HashSet<Point>) -> 
     let mut biggest_possibility = HashSet::new();
     for possibility in possibilities {
         let new_route = &route | &HashSet::from([possibility]);
-        let route_from_there = longest_route_from(&possibility, &grid, new_route);
+        let route_from_there = longest_route_from(&possibility, grid, new_route);
         if route_from_there.len() > biggest_possibility.len() {
             biggest_possibility = route_from_there;
         }
@@ -364,7 +351,7 @@ mod tests {
     fn test_start() {
         let raw_input = load_input();
         let input = Grid::from_str(&raw_input).unwrap();
-        assert_eq!(input.map.get(&START_POINT), Some(&Tile::Path));
+        assert_eq!(input.map[&START_POINT], Tile::Path);
     }
 
     #[test]
