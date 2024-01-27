@@ -3,8 +3,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fs::read_to_string;
 
-use cached::proc_macro::cached;
-
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Clone, Copy)]
 enum Card {
     J = 1,
@@ -44,13 +42,12 @@ enum HandCategory {
     FiveOfAKind,
 }
 
-#[cached]
-fn determine_hand_category(card_counts: Vec<u8>, num_jokers: u8) -> HandCategory {
+fn determine_hand_category(card_counts: &[&u8], num_jokers: u8) -> HandCategory {
     assert!(num_jokers <= 5);
-    assert_eq!(card_counts.iter().sum::<u8>(), 5);
+    debug_assert_eq!(card_counts.iter().map(|c| **c).sum::<u8>(), 5);
     assert!(card_counts.len() <= 5);
 
-    match (&card_counts[..], num_jokers) {
+    match (card_counts, num_jokers) {
         ([5], _) => HandCategory::FiveOfAKind,
         ([4, 1], 0) => HandCategory::FourOfAKind,
         ([4, 1], _) => HandCategory::FiveOfAKind,
@@ -81,9 +78,9 @@ impl Hand {
         for card in &self.cards {
             *counter.entry(*card).or_insert(0) += 1;
         }
-        let mut counter_values: Vec<u8> = counter.values().map(|v| v.to_owned()).collect();
-        counter_values.sort_unstable_by_key(|c| Reverse(*c));
-        determine_hand_category(counter_values, *counter.get(&Card::J).unwrap_or(&0_u8))
+        let mut counter_values: Vec<_> = counter.values().collect();
+        counter_values.sort_unstable_by_key(|c| Reverse(**c));
+        determine_hand_category(&counter_values, *counter.get(&Card::J).unwrap_or(&0_u8))
     }
 }
 
@@ -120,15 +117,13 @@ fn total_winnings(mut hands: Vec<Hand>) -> u32 {
 }
 
 fn parse_input(filename: &str) -> Vec<Hand> {
-    let mut hands = Vec::new();
+    let mut hands = vec![];
     for line in read_to_string(filename).unwrap().lines() {
-        let [unparsed_hand, unparsed_bid] = match line.split_whitespace().collect::<Vec<&str>>()[..]
-        {
-            [a, b] => [a, b],
-            _ => panic!(),
+        let [unparsed_hand, unparsed_bid] = line.split_whitespace().collect::<Vec<_>>()[..] else {
+            panic!()
         };
-        assert_eq!(unparsed_hand.len(), 5);
-        let mut cards: Vec<Card> = Vec::new();
+        debug_assert_eq!(unparsed_hand.len(), 5);
+        let mut cards = Vec::with_capacity(5);
         for char in unparsed_hand.chars() {
             cards.push(match char {
                 '2' => Card::Two,
@@ -147,8 +142,8 @@ fn parse_input(filename: &str) -> Vec<Hand> {
                 _ => panic!("Unexpected char {}", char),
             });
         }
-        let bid = unparsed_bid.parse::<u16>().unwrap();
-        assert!(bid <= 1000);
+        let bid = unparsed_bid.parse().unwrap();
+        debug_assert!(bid <= 1000);
         hands.push(Hand { cards, bid });
     }
     assert_eq!(hands.len(), 1000);

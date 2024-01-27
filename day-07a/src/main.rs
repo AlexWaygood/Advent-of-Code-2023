@@ -105,11 +105,10 @@ fn total_winnings(mut hands: Vec<Hand>) -> u32 {
 }
 
 fn parse_input(filename: &str) -> Vec<Hand> {
-    let mut hands = Vec::new();
+    let mut hands = vec![];
     for line in read_to_string(filename).unwrap().lines() {
-        let (unparsed_hand, unparsed_bid) = match line.split_whitespace().collect::<Vec<_>>()[..] {
-            [a, b] => (a, b),
-            _ => panic!(),
+        let [unparsed_hand, unparsed_bid] = line.split_whitespace().collect::<Vec<_>>()[..]  else {
+            panic!()
         };
         debug_assert_eq!(unparsed_hand.len(), 5);
         let mut cards = Vec::with_capacity(5);
