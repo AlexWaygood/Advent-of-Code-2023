@@ -76,11 +76,9 @@ impl Box {
                         .index_to_label
                         .iter()
                         .position(|l| l == &label)
-                        .expect(format!(
-                            "Expected {} to be present in `index_to_label`, given it was present in `label_to_lens`!",
-                            label,
-                        ).as_str()
-                    );
+                        .unwrap_or_else(|| panic!(
+                            "Expected {label} to be present in `index_to_label`, given it was present in `label_to_lens`!"
+                        ));
                     self.index_to_label.remove(index);
                 }
             }
@@ -101,9 +99,7 @@ impl Box {
             .iter()
             .enumerate()
             .map(|(i, label)| {
-                (box_number + 1)
-                    * (i + 1)
-                    * (self.label_to_lens.get(label).unwrap().focal_length as usize)
+                (box_number + 1) * (i + 1) * (self.label_to_lens[label].focal_length as usize)
             })
             .sum()
     }
@@ -112,12 +108,7 @@ impl Box {
     fn lenses_copy(&self) -> Vec<(String, Lens)> {
         self.index_to_label
             .iter()
-            .map(|label| {
-                (
-                    label.to_owned(),
-                    self.label_to_lens.get(label).unwrap().to_owned(),
-                )
-            })
+            .map(|label| (label.to_owned(), self.label_to_lens[label]))
             .collect()
     }
 
@@ -162,12 +153,12 @@ impl BoxArray {
 }
 
 fn parse_input(input: &str) -> Result<Vec<Operation>> {
-    input.split(",").map(|s| s.parse()).collect()
+    input.split(',').map(|s| s.parse()).collect()
 }
 
 fn solve(filename: &str) -> usize {
     let input =
-        read_to_string(filename).expect(&format!("Expected {} to exist!", filename).to_string());
+        read_to_string(filename).unwrap_or_else(|_| panic!("Expected {filename} to exist!"));
     let steps = parse_input(&input).unwrap();
     let mut box_array = BoxArray::new();
     for step in steps {
