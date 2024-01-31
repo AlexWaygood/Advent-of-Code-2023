@@ -1,8 +1,7 @@
 use std::fmt::Display;
 use std::fs::read_to_string;
-use std::str::FromStr;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{bail, Context, Result};
 
 #[derive(Debug, Clone, Copy)]
 enum Direction {
@@ -12,16 +11,16 @@ enum Direction {
     Right,
 }
 
-impl FromStr for Direction {
-    type Err = anyhow::Error;
+impl TryFrom<&char> for Direction {
+    type Error = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn try_from(s: &char) -> Result<Self> {
         match s {
-            "1" => Ok(Direction::Down),
-            "3" => Ok(Direction::Up),
-            "2" => Ok(Direction::Left),
-            "0" => Ok(Direction::Right),
-            _ => Err(anyhow!("Can't create a Direction from {}", s)),
+            '1' => Ok(Direction::Down),
+            '3' => Ok(Direction::Up),
+            '2' => Ok(Direction::Left),
+            '0' => Ok(Direction::Right),
+            _ => bail!("Can't create a Direction from {s}"),
         }
     }
 }
@@ -29,12 +28,12 @@ impl FromStr for Direction {
 impl Display for Direction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let repr = match self {
-            Direction::Down => "D",
-            Direction::Left => "L",
-            Direction::Right => "R",
-            Direction::Up => "U",
+            Direction::Down => 'D',
+            Direction::Left => 'L',
+            Direction::Right => 'R',
+            Direction::Up => 'U',
         };
-        write!(f, "{}", repr)
+        write!(f, "{repr}")
     }
 }
 
@@ -50,23 +49,12 @@ impl Point {
     }
 
     fn go(&self, direction: Direction) -> Self {
+        let Point { x, y } = *self;
         match direction {
-            Direction::Up => Self {
-                x: self.x,
-                y: self.y - 1,
-            },
-            Direction::Down => Self {
-                x: self.x,
-                y: self.y + 1,
-            },
-            Direction::Left => Self {
-                x: self.x - 1,
-                y: self.y,
-            },
-            Direction::Right => Self {
-                x: self.x + 1,
-                y: self.y,
-            },
+            Direction::Up => Self { x, y: y - 1 },
+            Direction::Down => Self { x, y: y + 1 },
+            Direction::Left => Self { x: x - 1, y },
+            Direction::Right => Self { x: x + 1, y },
         }
     }
 }
@@ -101,17 +89,14 @@ fn parse_input(filename: &str) -> Result<Vec<Direction>> {
     let input = read_to_string(filename)?;
     let mut points = vec![];
     for (lineno, line) in input.lines().enumerate() {
-        match line.split(" ").collect::<Vec<&str>>()[..] {
+        match line.split(' ').collect::<Vec<&str>>()[..] {
             [_, _, info] => {
-                let direction = Direction::from_str(
-                    info.chars()
+                let direction = Direction::try_from(
+                    &info
+                        .chars()
                         .rev()
-                        .skip(1)
-                        .take(1)
-                        .next()
-                        .context("Expected 'direction' to have length at least 1!")?
-                        .to_string()
-                        .as_str(),
+                        .nth(1)
+                        .context("Expected 'direction' to have length at least 1!")?,
                 )?;
                 let num = u32::from_str_radix(&info[2..(info.len() - 2)], 16)?;
                 for _ in 0..num {
