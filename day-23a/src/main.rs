@@ -4,7 +4,7 @@ use std::fs::read_to_string;
 use std::hash::Hash;
 use std::str::FromStr;
 
-use anyhow::{anyhow, Ok, Result};
+use anyhow::{bail, Result};
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIs, EnumIter};
 
@@ -37,35 +37,38 @@ impl Tile {
             Tile::Forest => panic!("Looks like we accidentally stepped onto a `Forest` tile!"),
         }
     }
+
+    fn as_char(&self) -> char {
+        match self {
+            Self::Path => '.',
+            Self::Forest => '#',
+            Self::Slope(Direction::Down) => 'v',
+            Self::Slope(Direction::Up) => '^',
+            Self::Slope(Direction::Left) => '<',
+            Self::Slope(Direction::Right) => '>',
+        }
+    }
 }
 
-impl FromStr for Tile {
-    type Err = anyhow::Error;
+impl TryFrom<&char> for Tile {
+    type Error = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn try_from(s: &char) -> Result<Self> {
         match s {
-            "." => Ok(Self::Path),
-            "#" => Ok(Self::Forest),
-            "^" => Ok(Self::Slope(Direction::Up)),
-            ">" => Ok(Self::Slope(Direction::Right)),
-            "v" => Ok(Self::Slope(Direction::Down)),
-            "<" => Ok(Self::Slope(Direction::Left)),
-            _ => Err(anyhow!("Don't know what tile {} is meant to be!", s)),
+            '.' => Ok(Self::Path),
+            '#' => Ok(Self::Forest),
+            '^' => Ok(Self::Slope(Direction::Up)),
+            '>' => Ok(Self::Slope(Direction::Right)),
+            'v' => Ok(Self::Slope(Direction::Down)),
+            '<' => Ok(Self::Slope(Direction::Left)),
+            _ => bail!("Don't know what tile {s} is meant to be!"),
         }
     }
 }
 
 impl Display for Tile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let c = match self {
-            Self::Path => ".",
-            Self::Forest => "#",
-            Self::Slope(Direction::Down) => "v",
-            Self::Slope(Direction::Up) => "^",
-            Self::Slope(Direction::Left) => "<",
-            Self::Slope(Direction::Right) => ">",
-        };
-        write!(f, "{}", c)
+        write!(f, "{}", self.as_char())
     }
 }
 
@@ -121,7 +124,7 @@ impl Point {
 impl Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let Point { x, y } = self;
-        write!(f, "({}, {})", x, y)
+        write!(f, "({x}, {y})")
     }
 }
 
@@ -171,7 +174,7 @@ impl Display for Grid {
             for x in 0..=self.max_x {
                 let point = Point::new(x, y);
                 let tile = &self.map[&point];
-                row.push_str(&format!("{}", tile))
+                row.push(tile.as_char())
             }
             debug_assert_eq!(row.len(), ((self.max_x + 1) as usize));
             rows.push(row)
@@ -194,7 +197,7 @@ impl FromStr for Grid {
                 let x = x.try_into()?;
                 max_x = x;
                 let point = Point { x, y };
-                let tile = Tile::from_str(c.to_string().as_str())?;
+                let tile = Tile::try_from(&c)?;
                 map.insert(point, tile);
             }
         }
@@ -253,9 +256,9 @@ mod tests {
     #[test]
     fn test_parsing_tile_roundtrip() {
         let characters = ".#^>v<";
-        for character in characters.chars().map(|s| s.to_string()) {
-            let parsed = Tile::from_str(&character).unwrap();
-            let roundtripped = format!("{}", parsed);
+        for character in characters.chars() {
+            let parsed = Tile::try_from(&character).unwrap();
+            let roundtripped = parsed.as_char();
             assert_eq!(
                 roundtripped, character,
                 "Parsing {} failed to roundtrip",
