@@ -2,7 +2,7 @@ use std::fmt::Display;
 use std::fs::read_to_string;
 use std::str::FromStr;
 
-use anyhow::{anyhow, Result, bail};
+use anyhow::{bail, Result};
 
 #[derive(Debug, Clone, Copy)]
 enum Direction {
@@ -21,7 +21,7 @@ impl FromStr for Direction {
             "U" => Ok(Direction::Up),
             "L" => Ok(Direction::Left),
             "R" => Ok(Direction::Right),
-            _ => Err(anyhow!("Can't create a Direction from {}", s))
+            _ => bail!("Can't create a Direction from {s}"),
         }
     }
 }
@@ -29,12 +29,12 @@ impl FromStr for Direction {
 impl Display for Direction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let repr = match self {
-            Direction::Down => "D",
-            Direction::Left => "L",
-            Direction::Right => "R",
-            Direction::Up => "U"
+            Direction::Down => 'D',
+            Direction::Left => 'L',
+            Direction::Right => 'R',
+            Direction::Up => 'U',
         };
-        write!(f, "{}", repr)
+        write!(f, "{repr}")
     }
 }
 
@@ -46,15 +46,16 @@ struct Point {
 
 impl Point {
     fn new(x: i32, y: i32) -> Self {
-        Self {x, y}
+        Self { x, y }
     }
 
     fn go(&self, direction: Direction) -> Self {
+        let Point { x, y } = *self;
         match direction {
-            Direction::Up => Self {x: self.x, y: self.y - 1},
-            Direction::Down => Self {x: self.x, y: self.y + 1},
-            Direction::Left => Self {x: self.x - 1, y: self.y},
-            Direction::Right => Self {x: self.x + 1, y: self.y}
+            Direction::Up => Self { x, y: y - 1 },
+            Direction::Down => Self { x, y: y + 1 },
+            Direction::Left => Self { x: x - 1, y },
+            Direction::Right => Self { x: x + 1, y },
         }
     }
 }
@@ -89,15 +90,15 @@ fn parse_input(filename: &str) -> Result<Vec<Direction>> {
     let input = read_to_string(filename)?;
     let mut points = vec![];
     for (lineno, line) in input.lines().enumerate() {
-        match line.split(" ").collect::<Vec<&str>>()[..] {
+        match line.split(' ').collect::<Vec<_>>()[..] {
             [d, n, _] => {
                 let direction = Direction::from_str(d)?;
                 let num = u8::from_str(n)?;
                 for _ in 0..num {
                     points.push(direction)
                 }
-            },
-            _ => bail!("Unexpected number of spaces in line {}", lineno + 1)
+            }
+            _ => bail!("Unexpected number of spaces in line {}", lineno + 1),
         }
     }
     Ok(points)
