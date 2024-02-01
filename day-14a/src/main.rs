@@ -10,10 +10,10 @@ enum Tile {
     Empty,
 }
 
-impl TryFrom<char> for Tile {
+impl TryFrom<&char> for Tile {
     type Error = anyhow::Error;
 
-    fn try_from(s: char) -> Result<Self> {
+    fn try_from(s: &char) -> Result<Self> {
         match s {
             'O' => Ok(Tile::RoundRock),
             '#' => Ok(Tile::CubeRock),
@@ -26,9 +26,9 @@ impl TryFrom<char> for Tile {
 impl fmt::Display for Tile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let c = match self {
-            Tile::RoundRock => "O",
-            Tile::CubeRock => "#",
-            Tile::Empty => ".",
+            Tile::RoundRock => 'O',
+            Tile::CubeRock => '#',
+            Tile::Empty => '.',
         };
         write!(f, "{c}")
     }
@@ -113,7 +113,7 @@ impl FromStr for Platform {
         for (y, row) in lines.iter().enumerate() {
             for (x, c) in row.chars().enumerate() {
                 let coordinate = Coordinate::from_usize_pair(x, y).unwrap();
-                let tile = Tile::try_from(c).unwrap();
+                let tile = Tile::try_from(&c).unwrap();
                 tile_map.insert(coordinate, tile);
             }
         }
@@ -145,7 +145,7 @@ impl fmt::Display for Platform {
 
 fn parse_input(filename: &str) -> Result<Platform> {
     read_to_string(filename)
-        .context(format!("Expected {filename} to exist!"))?
+        .with_context(|| format!("Expected {filename} to exist!"))?
         .parse()
 }
 
