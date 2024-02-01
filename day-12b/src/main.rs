@@ -2,47 +2,40 @@ use std::collections::HashSet;
 use std::fmt::Display;
 use std::fs::read_to_string;
 use std::iter::repeat;
-use std::ops::Not;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, Context, Ok, Result};
+use anyhow::{bail, Context, Ok, Result};
 use cached::proc_macro::cached;
 use itertools::Itertools;
-use regex;
+use strum_macros::EnumIs;
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, EnumIs)]
 enum Condition {
-    DAMAGED,
-    UNKNOWN,
-    OPERATIONAL,
-}
-
-impl Condition {
-    fn is_operational(&self) -> bool {
-        self == &Condition::OPERATIONAL
-    }
+    Damaged,
+    Unknown,
+    Operational,
 }
 
 impl Display for Condition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let string = match self {
-            Condition::DAMAGED => "D",
-            Condition::OPERATIONAL => "O",
-            Condition::UNKNOWN => "U",
+        let c = match self {
+            Condition::Damaged => 'D',
+            Condition::Operational => 'O',
+            Condition::Unknown => 'U',
         };
-        write!(f, "{}", string)
+        write!(f, "{c}")
     }
 }
 
-impl FromStr for Condition {
-    type Err = anyhow::Error;
+impl TryFrom<&char> for Condition {
+    type Error = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn try_from(s: &char) -> Result<Self> {
         match s {
-            "#" => Ok(Condition::DAMAGED),
-            "?" => Ok(Condition::UNKNOWN),
-            "." => Ok(Condition::OPERATIONAL),
-            _ => Err(anyhow!("Can't construct a condition from {}", s)),
+            '#' => Ok(Condition::Damaged),
+            '?' => Ok(Condition::Unknown),
+            '.' => Ok(Condition::Operational),
+            _ => bail!("Can't construct a condition from {s}"),
         }
     }
 }
@@ -53,7 +46,7 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
         return 0;
     }
 
-    if conditions[0] == Condition::OPERATIONAL {
+    if conditions[0].is_operational() {
         return num_possible_fits(contiguous_broken, conditions[1..].to_vec());
     }
 
@@ -63,15 +56,13 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
         .into_iter()
         .map(|(operational, group_iter)| (operational, group_iter.count()))
         .collect();
-    debug_assert!(grouped_by_operational[0].0.not());
-    debug_assert!(grouped_by_operational[grouped_by_operational.len() - 1]
-        .0
-        .not());
+    debug_assert!(!grouped_by_operational[0].0);
+    debug_assert!(!grouped_by_operational[grouped_by_operational.len() - 1].0);
 
     if (contiguous_broken.iter().sum::<u32>() as usize)
         > grouped_by_operational
             .iter()
-            .filter(|(operational, _)| operational.not())
+            .filter(|(operational, _)| !operational)
             .map(|(_, group_length)| group_length)
             .sum()
     {
@@ -84,17 +75,17 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
         .into_iter()
         .map(|(condition, group_iter)| (condition, group_iter.count()))
         .collect();
-    debug_assert_ne!(grouped_by_condition[0].0, &Condition::OPERATIONAL);
+    debug_assert_ne!(grouped_by_condition[0].0, &Condition::Operational);
     debug_assert_ne!(
         grouped_by_condition[grouped_by_condition.len() - 1].0,
-        &Condition::OPERATIONAL
+        &Condition::Operational
     );
 
     let first_contiguous = contiguous_broken[0] as usize;
 
     if grouped_by_operational[0].1 < first_contiguous {
-        let first_operational_index = (grouped_by_operational[0].1 + 1) as usize;
-        if conditions[..first_operational_index].contains(&Condition::DAMAGED) {
+        let first_operational_index = grouped_by_operational[0].1 + 1;
+        if conditions[..first_operational_index].contains(&Condition::Damaged) {
             return 0;
         }
         return num_possible_fits(
@@ -106,10 +97,9 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
     if grouped_by_operational[grouped_by_operational.len() - 1].1
         < (contiguous_broken[contiguous_broken.len() - 1] as usize)
     {
-        let last_operational_index = conditions.len()
-            - (grouped_by_operational[grouped_by_operational.len() - 1].1 as usize)
-            - 1;
-        if conditions[last_operational_index..].contains(&Condition::DAMAGED) {
+        let last_operational_index =
+            conditions.len() - grouped_by_operational[grouped_by_operational.len() - 1].1 - 1;
+        if conditions[last_operational_index..].contains(&Condition::Damaged) {
             return 0;
         }
         return num_possible_fits(
@@ -121,17 +111,14 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
     let mut answer = 0;
 
     if contiguous_broken.len() == 1 {
-        if grouped_by_condition
-            .iter()
-            .any(|(c, _)| c == &&Condition::DAMAGED)
-        {
+        if grouped_by_condition.iter().any(|(c, _)| c.is_damaged()) {
             for i in 0..conditions.len() {
-                if i != 0 && conditions[i - 1] == Condition::DAMAGED {
+                if i != 0 && conditions[i - 1].is_damaged() {
                     break;
                 }
 
                 if let Some(slice) = conditions.get((i + first_contiguous)..) {
-                    if slice.contains(&Condition::DAMAGED) {
+                    if slice.contains(&Condition::Damaged) {
                         continue;
                     }
                 }
@@ -142,10 +129,10 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
                             break;
                         }
                         let to_test: HashSet<&Condition> = HashSet::from_iter(slice);
-                        if to_test.contains(&Condition::OPERATIONAL) {
+                        if to_test.contains(&Condition::Operational) {
                             continue;
                         }
-                        if to_test.contains(&Condition::DAMAGED).not() {
+                        if !to_test.contains(&Condition::Damaged) {
                             continue;
                         }
                     }
@@ -156,19 +143,18 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
             }
         } else {
             for (condition, group_length) in grouped_by_condition {
-                let group_length_usize = group_length as usize;
-                if condition == &Condition::UNKNOWN && group_length_usize >= first_contiguous {
-                    answer += (group_length_usize - first_contiguous) + 1
+                if condition.is_unknown() && group_length >= first_contiguous {
+                    answer += (group_length - first_contiguous) + 1
                 }
             }
         }
     } else {
-        let range_to_test = (grouped_by_operational[0].1 as usize) - first_contiguous + 1;
+        let range_to_test = grouped_by_operational[0].1 - first_contiguous + 1;
         for i in 0..range_to_test {
-            if i != 0 && conditions[i - 1] == Condition::DAMAGED {
+            if i != 0 && conditions[i - 1].is_damaged() {
                 break;
             }
-            if let Some(Condition::DAMAGED) = conditions.get(i + first_contiguous) {
+            if let Some(Condition::Damaged) = conditions.get(i + first_contiguous) {
                 continue;
             }
             if let Some(slice) = conditions.get((i + first_contiguous + 1)..) {
@@ -176,10 +162,7 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
             }
         }
 
-        if conditions[..range_to_test]
-            .iter()
-            .all(|c| c == &Condition::UNKNOWN)
-        {
+        if conditions[..range_to_test].iter().all(|c| c.is_unknown()) {
             answer += num_possible_fits(contiguous_broken, conditions[range_to_test..].to_vec())
         }
     }
@@ -192,8 +175,8 @@ fn find_conditions(string: &str) -> Result<Vec<Condition>> {
     modded_string
         .trim_matches('.')
         .chars()
-        .map(|c| c.to_string().as_str().parse())
-        .collect::<Result<Vec<Condition>>>()
+        .map(|c| Condition::try_from(&c))
+        .collect()
 }
 
 #[derive(Clone)]
@@ -214,15 +197,17 @@ impl FromStr for Row {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        let (left, right) = match s.split(" ").collect::<Vec<&str>>()[..] {
+        let (left, right) = match s.split(' ').collect_vec()[..] {
             [left, right] => (left, right),
-            _ => bail!("Couldn't parse {} into a row", s),
+            _ => bail!("Couldn't parse {s} into a row"),
         };
         let conditions = find_conditions(repeat(left).take(REPEATS).join("?").as_str())?;
-        let mut contiguous_broken_groups = vec![];
-        for val in repeat(right).take(REPEATS).join(",").split(",") {
-            contiguous_broken_groups.push(val.parse()?)
-        }
+        let contiguous_broken_groups = repeat(right)
+            .take(REPEATS)
+            .join(",")
+            .split(',')
+            .map(|val| val.parse())
+            .collect::<Result<_, _>>()?;
         Ok(Row {
             conditions,
             contiguous_broken_groups,
@@ -231,7 +216,7 @@ impl FromStr for Row {
 }
 
 fn read_input(filename: &str) -> Result<String> {
-    read_to_string(filename).context(format!("Expected {} to exist!", filename))
+    read_to_string(filename).with_context(|| format!("Expected {filename} to exist!"))
 }
 
 fn solve(filename: &str) -> usize {
