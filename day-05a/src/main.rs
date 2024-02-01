@@ -30,7 +30,7 @@ impl FromStr for GardeningThing {
             "temperature" => Ok(Self::Temperature),
             "humidity" => Ok(Self::Humidity),
             "location" => Ok(Self::Location),
-            _ => bail!("Don't know how to create a `Gardening thing from {}", s),
+            _ => bail!("Don't know how to create a `Gardening thing from {s}"),
         }
     }
 }
@@ -169,8 +169,7 @@ fn parse_seeds_from_input(seed_description: &str) -> std::result::Result<Vec<u32
 }
 
 fn solve(filename: &str) -> u32 {
-    let input =
-        read_to_string(filename).unwrap_or_else(|_| panic!("Expected {} to exist", filename));
+    let input = read_to_string(filename).unwrap_or_else(|_| panic!("Expected {filename} to exist"));
     let input_data = InputData::from_str(&input).unwrap();
     input_data.seed_locations().min().unwrap()
 }

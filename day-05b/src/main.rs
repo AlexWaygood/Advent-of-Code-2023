@@ -23,7 +23,7 @@ enum GardeningThing {
 impl FromStr for GardeningThing {
     type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> anyhow::Result<Self> {
+    fn from_str(s: &str) -> Result<Self> {
         match s {
             "seed" => Ok(GardeningThing::Seed),
             "soil" => Ok(GardeningThing::Soil),

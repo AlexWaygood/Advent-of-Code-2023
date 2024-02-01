@@ -3,7 +3,7 @@ use std::fs::read_to_string;
 use std::iter::Sum;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PulseKind {
@@ -267,7 +267,7 @@ impl FromStr for ModuleKind {
             _ => match s.chars().next().unwrap() {
                 '&' => Ok(ModuleKind::Conjunction(String::from(&s[1..]))),
                 '%' => Ok(ModuleKind::FlipFlop(String::from(&s[1..]))),
-                _ => Err(anyhow!("Don't know what module kind {} represents", s)),
+                _ => bail!("Don't know what module kind {s} represents"),
             },
         }
     }

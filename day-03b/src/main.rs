@@ -2,8 +2,7 @@ use std::cmp::min;
 use std::fs::read_to_string;
 
 fn read_input(filename: &str) -> String {
-    read_to_string(filename)
-        .unwrap_or_else(|_| panic!("{}", format!("Expected {filename} to exist")))
+    read_to_string(filename).unwrap_or_else(|_| panic!("Expected {filename} to exist"))
 }
 
 fn get_gear_ratio(index: usize, all_lines: &[&str], lineno: usize, line_length: usize) -> u32 {

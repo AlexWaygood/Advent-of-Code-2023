@@ -15,12 +15,12 @@ fn run_algorithm(step: String) -> u8 {
 }
 
 fn read_input(filename: &str) -> String {
-    read_to_string(filename).expect(format!("Expected {} to exist!", filename).as_str())
+    read_to_string(filename).unwrap_or_else(|_| panic!("Expected {filename} to exist!"))
 }
 
 fn solve(filename: &str) -> u32 {
     read_input(filename)
-        .split(",")
+        .split(',')
         .map(|step| (run_algorithm(step.to_string()) as u32))
         .sum()
 }

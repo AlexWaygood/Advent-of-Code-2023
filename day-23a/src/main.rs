@@ -84,23 +84,12 @@ impl Point {
     }
 
     fn go(&self, direction: &Direction) -> Point {
+        let Point { x, y } = *self;
         match direction {
-            Direction::Up => Self {
-                y: self.y - 1,
-                ..*self
-            },
-            Direction::Down => Self {
-                y: self.y + 1,
-                ..*self
-            },
-            Direction::Left => Self {
-                x: self.x - 1,
-                ..*self
-            },
-            Direction::Right => Self {
-                x: self.x + 1,
-                ..*self
-            },
+            Direction::Up => Self { x, y: y - 1 },
+            Direction::Down => Self { x, y: y + 1 },
+            Direction::Left => Self { x: x - 1, y },
+            Direction::Right => Self { x: x + 1, y },
         }
     }
 

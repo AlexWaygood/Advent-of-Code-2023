@@ -58,8 +58,7 @@ fn gather_part_numbers_from_file(input: String) -> Vec<u32> {
 }
 
 fn read_input(filename: &str) -> String {
-    read_to_string(filename)
-        .unwrap_or_else(|_| panic!("{}", format!("Expected {filename} to exist")))
+    read_to_string(filename).unwrap_or_else(|_| panic!("Expected {filename} to exist"))
 }
 
 fn solve(filename: &str) -> u32 {

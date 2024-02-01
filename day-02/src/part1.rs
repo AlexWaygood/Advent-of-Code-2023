@@ -11,18 +11,9 @@ struct Round {
 
 impl Round {
     fn from_hash_map(mut map: HashMap<&str, u32>) -> Round {
-        let red = match map.remove("red") {
-            Some(value) => value,
-            None => 0,
-        };
-        let green = match map.remove("green") {
-            Some(value) => value,
-            None => 0,
-        };
-        let blue = match map.remove("blue") {
-            Some(value) => value,
-            None => 0,
-        };
+        let red = map.remove("red").unwrap_or(0);
+        let green = map.remove("green").unwrap_or(0);
+        let blue = map.remove("blue").unwrap_or(0);
         assert!(
             map.is_empty(),
             "Unexpected values are present in the hash map!"
@@ -70,7 +61,7 @@ fn parse_input_file(input_filename: &str) -> Vec<Game> {
         match game_description.splitn(2, ": ").last() {
             Some(mut round_descriptions) => {
                 round_descriptions = round_descriptions.trim();
-                assert!(round_descriptions.contains(":").not());
+                assert!(round_descriptions.contains(':').not());
 
                 let game_id: u32 = (index + 1).try_into().unwrap();
                 let mut rounds: Vec<Round> = Vec::new();
@@ -80,7 +71,7 @@ fn parse_input_file(input_filename: &str) -> Vec<Game> {
 
                     for colour_description in round_description.split(", ") {
                         let colour_description_split: Vec<&str> =
-                            colour_description.split(" ").collect();
+                            colour_description.split(' ').collect();
 
                         match colour_description_split[..] {
                             [number_description, colour] => {
@@ -111,6 +102,5 @@ fn calculate(input_filename: &str) -> u32 {
 }
 
 fn main() {
-    let answer = calculate("input.txt");
-    println!("{}", answer);
+    println!("{}", calculate("input.txt"));
 }

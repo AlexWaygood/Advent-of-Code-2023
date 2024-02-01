@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIs, EnumIter};
 
@@ -22,23 +22,12 @@ struct Point {
 
 impl Point {
     fn go(&self, direction: &Direction) -> Point {
+        let Point { x, y } = *self;
         match direction {
-            Direction::North => Point {
-                y: self.y - 1,
-                ..*self
-            },
-            Direction::South => Point {
-                y: self.y + 1,
-                ..*self
-            },
-            Direction::East => Point {
-                x: self.x + 1,
-                ..*self
-            },
-            Direction::West => Point {
-                x: self.x - 1,
-                ..*self
-            },
+            Direction::North => Point { x, y: y - 1 },
+            Direction::South => Point { x, y: y + 1 },
+            Direction::East => Point { x: x + 1, y },
+            Direction::West => Point { x: x - 1, y },
         }
     }
 }
@@ -50,15 +39,15 @@ enum Tile {
     Rock,
 }
 
-impl FromStr for Tile {
-    type Err = anyhow::Error;
+impl TryFrom<&char> for Tile {
+    type Error = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn try_from(s: &char) -> Result<Self> {
         match s {
-            "S" => Ok(Self::Start),
-            "." => Ok(Self::GardenPlot),
-            "#" => Ok(Self::Rock),
-            _ => Err(anyhow!("Don't know what kind of tile {} is", s)),
+            'S' => Ok(Self::Start),
+            '.' => Ok(Self::GardenPlot),
+            '#' => Ok(Self::Rock),
+            _ => bail!("Don't know what kind of tile {s} is"),
         }
     }
 }
@@ -84,7 +73,7 @@ impl FromStr for PuzzleInput {
                 let x = x.try_into()?;
                 max_x = x;
                 let point = Point { x, y };
-                let tile = Tile::from_str(c.to_string().as_str())?;
+                let tile = Tile::try_from(&c)?;
                 if tile.is_start() {
                     start = Some(point);
                 };
@@ -92,7 +81,7 @@ impl FromStr for PuzzleInput {
             }
         }
         let Some(start) = start else {
-            bail!("Couldnt' find the starting position!")
+            bail!("Couldn't find the starting position!")
         };
         Ok(PuzzleInput {
             start,
@@ -105,7 +94,7 @@ impl FromStr for PuzzleInput {
 
 fn parse_input(filename: &str) -> Result<PuzzleInput> {
     let input = read_to_string(filename)?;
-    Ok(PuzzleInput::from_str(&input)?)
+    PuzzleInput::from_str(&input)
 }
 
 fn points_from_here(point: &Point, puzzle_input: &PuzzleInput) -> Vec<Point> {
@@ -129,8 +118,7 @@ fn solve(puzzle_input: PuzzleInput) -> usize {
         points = HashSet::from_iter(
             points
                 .iter()
-                .map(|p| points_from_here(&p, &puzzle_input))
-                .flatten(),
+                .flat_map(|p| points_from_here(p, &puzzle_input)),
         )
     }
     points.len()

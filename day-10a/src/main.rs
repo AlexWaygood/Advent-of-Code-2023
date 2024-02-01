@@ -75,7 +75,7 @@ fn parse_input(filename: &str) -> PuzzleInput {
                 'J' => Pipe::NorthWest,
                 '7' => Pipe::SouthWest,
                 'F' => Pipe::SouthEast,
-                _ => panic!("Unexpected char {}", c),
+                _ => panic!("Unexpected char {c}"),
             };
             pipe_map.insert(coordinates, pipe);
         }

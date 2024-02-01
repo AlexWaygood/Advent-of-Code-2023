@@ -18,7 +18,7 @@ impl TryFrom<&char> for Tile {
             'O' => Ok(Tile::RoundRock),
             '#' => Ok(Tile::CubeRock),
             '.' => Ok(Tile::Empty),
-            _ => bail!("Can't create a tile from {}", s),
+            _ => bail!("Can't create a tile from {s}"),
         }
     }
 }
@@ -41,7 +41,7 @@ impl Coordinate {
     fn from_usize_pair(x: usize, y: usize) -> Result<Self> {
         match (x.try_into(), y.try_into()) {
             (Ok(x1), Ok(x2)) => Ok(Coordinate(x1, x2)),
-            _ => bail!("Failed to construct coordinate from ({}, {})", x, y),
+            _ => bail!("Failed to construct coordinate from ({x}, {y})"),
         }
     }
 }
@@ -498,8 +498,7 @@ O..#.OO...
         assert_eq!(
             tilted_input,
             new_platform_display.as_str(),
-            "\n{}",
-            new_platform_display
+            "\n{new_platform_display}",
         );
         assert_eq!(platform.calculate_load(), 136)
     }

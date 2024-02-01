@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::{fs::read_to_string, str::FromStr};
 
-use anyhow::{anyhow, Ok, Result};
+use anyhow::{bail, Ok, Result};
 use cached::proc_macro::cached;
 
 type Label = String;
@@ -44,7 +44,7 @@ impl FromStr for Operation {
                 s[..s.len() - 2].to_string(),
                 focal_length.to_string().as_str().parse::<u8>()?,
             )),
-            _ => Err(anyhow!("Can't create an `Operation` from {}", s)),
+            _ => bail!("Can't create an `Operation` from {s}"),
         }
     }
 }
