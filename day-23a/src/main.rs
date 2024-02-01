@@ -261,8 +261,7 @@ mod tests {
             let roundtripped = parsed.as_char();
             assert_eq!(
                 roundtripped, character,
-                "Parsing {} failed to roundtrip",
-                character
+                "Parsing {character} failed to roundtrip",
             )
         }
     }
@@ -346,8 +345,8 @@ mod tests {
     fn test_file_parsing_roundtrip() {
         let raw_input = load_input().replace("\r\n", "\n");
         let parsed = Grid::from_str(&raw_input).unwrap();
-        let formatted = format!("{}", parsed);
-        assert_eq!(formatted.trim(), raw_input.trim(), "{}", formatted)
+        let formatted = format!("{parsed}");
+        assert_eq!(formatted.trim(), raw_input.trim(), "{formatted}")
     }
 
     #[test]

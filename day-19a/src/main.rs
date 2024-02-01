@@ -70,10 +70,7 @@ impl TryFrom<&char> for Compare {
         match value {
             '>' => Ok(Self::Gt),
             '<' => Ok(Self::Lt),
-            _ => bail!(
-                "Don't know how to create a `Compare` variant from {}",
-                value
-            ),
+            _ => bail!("Don't know how to create a `Compare` variant from {value}"),
         }
     }
 }
@@ -95,7 +92,7 @@ impl TryFrom<&char> for Attr {
             'm' => Ok(Attr::M),
             'a' => Ok(Attr::A),
             's' => Ok(Attr::S),
-            _ => bail!("Don't know how to create an `Attr` from {}", value),
+            _ => bail!("Don't know how to create an `Attr` from {value}"),
         }
     }
 }
@@ -128,23 +125,26 @@ impl Rule {
     }
 
     fn process(&self, part: &Part) -> Option<Decision> {
-        let inner: Box<dyn Fn(&Part) -> bool> = match (self.attr, self.cmp) {
-            (Some(Attr::X), Compare::Gt) => Box::new(|p: &Part| p.x > self.value),
-            (Some(Attr::X), Compare::Lt) => Box::new(|p: &Part| p.x < self.value),
-            (Some(Attr::M), Compare::Gt) => Box::new(|p: &Part| p.m > self.value),
-            (Some(Attr::M), Compare::Lt) => Box::new(|p: &Part| p.m < self.value),
-            (Some(Attr::A), Compare::Gt) => Box::new(|p: &Part| p.a > self.value),
-            (Some(Attr::A), Compare::Lt) => Box::new(|p: &Part| p.a < self.value),
-            (Some(Attr::S), Compare::Gt) => Box::new(|p: &Part| p.s > self.value),
-            (Some(Attr::S), Compare::Lt) => Box::new(|p: &Part| p.s < self.value),
+        let Rule {
+            attr,
+            cmp,
+            value,
+            outcome,
+        } = self;
+        let inner: Box<dyn Fn(&Part) -> bool> = match (attr, cmp) {
+            (Some(Attr::X), Compare::Gt) => Box::new(|p: &Part| p.x > *value),
+            (Some(Attr::X), Compare::Lt) => Box::new(|p: &Part| p.x < *value),
+            (Some(Attr::M), Compare::Gt) => Box::new(|p: &Part| p.m > *value),
+            (Some(Attr::M), Compare::Lt) => Box::new(|p: &Part| p.m < *value),
+            (Some(Attr::A), Compare::Gt) => Box::new(|p: &Part| p.a > *value),
+            (Some(Attr::A), Compare::Lt) => Box::new(|p: &Part| p.a < *value),
+            (Some(Attr::S), Compare::Gt) => Box::new(|p: &Part| p.s > *value),
+            (Some(Attr::S), Compare::Lt) => Box::new(|p: &Part| p.s < *value),
             (None, Compare::NoOp) => Box::new(|_: &Part| true),
-            _ => unreachable!(
-                "The combination of {:?} and {:?} should be impossible!",
-                self.attr, self.cmp
-            ),
+            _ => unreachable!("The combination of {attr:?} and {cmp:?} should be impossible!",),
         };
         if inner.as_ref()(part) {
-            let outcome = match &self.outcome {
+            let outcome = match outcome {
                 Decision::Accept => Decision::Accept,
                 Decision::Reject => Decision::Reject,
                 Decision::OtherWorkflow(s) => Decision::OtherWorkflow(s.to_owned()),
@@ -165,8 +165,8 @@ impl FromStr for Rule {
                 let attr = Attr::try_from(attr)?;
                 let cmp = Compare::try_from(cmp)?;
                 let rest = String::from_iter(rest);
-                let [digits, outcome] = rest.split(':').collect::<Vec<&str>>()[..] else {
-                    bail!("Don't know how to create a Rule from {}", s)
+                let [digits, outcome] = rest.split(':').collect::<Vec<_>>()[..] else {
+                    bail!("Don't know how to create a Rule from {s}")
                 };
                 let value = u32::from_str(digits)?;
                 let outcome = Decision::from(outcome);
@@ -191,13 +191,13 @@ impl FromStr for Workflow {
     fn from_str(s: &str) -> Result<Self> {
         let s = s.trim();
         let s = &s[..(s.len() - 1)];
-        let [name, rule_strings] = s.split('{').collect::<Vec<&str>>()[..] else {
-            bail!("Unexpected number of braces in {}", s)
+        let [name, rule_strings] = s.split('{').collect::<Vec<_>>()[..] else {
+            bail!("Unexpected number of braces in {s}")
         };
         let rules = rule_strings
             .split(',')
             .map(Rule::from_str)
-            .collect::<Result<Vec<Rule>>>()?;
+            .collect::<Result<_>>()?;
         Ok(Workflow {
             name: name.to_string(),
             rules,
@@ -258,7 +258,7 @@ impl FromStr for PuzzleInput {
 
 fn parse_input(filename: &str) -> Result<PuzzleInput> {
     let input_string = read_to_string(filename)
-        .with_context(|| format!("Expected {} to exist as a file!", filename))?;
+        .with_context(|| format!("Expected {filename} to exist as a file!"))?;
     PuzzleInput::from_str(&input_string)
 }
 

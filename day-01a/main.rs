@@ -25,6 +25,5 @@ fn calculate(filename: &str) -> u32 {
 }
 
 fn main() {
-    let answer = calculate("input.txt");
-    println!("{}", answer);
+    println!("{}", calculate("input.txt"));
 }

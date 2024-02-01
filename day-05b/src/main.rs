@@ -5,7 +5,7 @@ use std::iter::zip;
 use std::ops::Range;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{bail, Context, Result};
 use itertools::Itertools;
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -23,7 +23,7 @@ enum GardeningThing {
 impl FromStr for GardeningThing {
     type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> anyhow::Result<Self, Self::Err> {
+    fn from_str(s: &str) -> anyhow::Result<Self> {
         match s {
             "seed" => Ok(GardeningThing::Seed),
             "soil" => Ok(GardeningThing::Soil),
@@ -33,7 +33,7 @@ impl FromStr for GardeningThing {
             "temperature" => Ok(GardeningThing::Temperature),
             "humidity" => Ok(GardeningThing::Humidity),
             "location" => Ok(GardeningThing::Location),
-            _ => Err(anyhow!("Unknown gardening thing {}", s)),
+            _ => bail!("Unknown gardening thing {s}"),
         }
     }
 }
@@ -46,13 +46,13 @@ struct MapKind {
 impl FromStr for MapKind {
     type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self> {
         match s.split('-').collect_vec()[..] {
             [source_description, _, destination_description] => Ok(MapKind {
                 source: source_description.parse()?,
                 destination: destination_description.parse()?,
             }),
-            _ => Err(anyhow!("Can't construct a MapKind from {}", s)),
+            _ => bail!("Can't construct a MapKind from {s}"),
         }
     }
 }
@@ -96,7 +96,7 @@ impl FromStr for InputDataRow {
                 source_start,
                 range_length,
             }),
-            _ => bail!("Couldn't construct an InputDataRow from {}", s),
+            _ => bail!("Couldn't construct an InputDataRow from {s}"),
         }
     }
 }
@@ -123,10 +123,10 @@ impl FromStr for InputMap {
                 let rows = unparsed_rows
                     .iter()
                     .map(|s| s.parse())
-                    .collect::<Result<Vec<InputDataRow>>>()?;
+                    .collect::<Result<_>>()?;
                 Ok(InputMap { kind, rows })
             }
-            _ => bail!("Couldn't construct an InputMap from {}", s),
+            _ => bail!("Couldn't construct an InputMap from {s}"),
         }
     }
 }
@@ -261,7 +261,7 @@ struct InputData {
 impl FromStr for InputData {
     type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self> {
         match &s.replace("\r\n", "\n").split("\n\n").collect_vec()[..] {
             [unparsed_seeds, unparsed_maps @ ..] => {
                 if unparsed_maps.len() <= 1 {
@@ -271,17 +271,17 @@ impl FromStr for InputData {
                 let maps = unparsed_maps
                     .iter()
                     .map(|s| s.parse())
-                    .collect::<Result<Vec<InputMap>>>()?;
+                    .collect::<Result<_>>()?;
                 Ok(InputData { seed_ranges, maps })
             }
-            _ => Err(anyhow!("Couldn't parse the input data!")),
+            _ => bail!("Couldn't parse the input data!"),
         }
     }
 }
 
 fn parse_input(filename: &str) -> InputData {
     let puzzle_input =
-        read_to_string(filename).unwrap_or_else(|_| panic!("Expected file {} to exist", filename));
+        read_to_string(filename).unwrap_or_else(|_| panic!("Expected file {filename} to exist"));
     puzzle_input.parse().unwrap()
 }
 

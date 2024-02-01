@@ -24,9 +24,9 @@ impl fmt::Display for Card {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let value = *self as i32;
         if value > 10 || self == &Card::J {
-            write!(f, "Card({:?})", self)
+            write!(f, "Card({self:?})")
         } else {
-            write!(f, "Card({})", value)
+            write!(f, "Card({value})")
         }
     }
 }
@@ -139,7 +139,7 @@ fn parse_input(filename: &str) -> Vec<Hand> {
                 'Q' => Card::Q,
                 'K' => Card::K,
                 'A' => Card::A,
-                _ => panic!("Unexpected char {}", char),
+                _ => panic!("Unexpected char {char}"),
             });
         }
         let bid = unparsed_bid.parse().unwrap();

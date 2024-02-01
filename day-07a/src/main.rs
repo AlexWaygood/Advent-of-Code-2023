@@ -24,9 +24,9 @@ impl fmt::Display for Card {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let value = *self as i32;
         if value < 11 {
-            write!(f, "Card({})", value)
+            write!(f, "Card({value})")
         } else {
-            write!(f, "Card({:?})", self)
+            write!(f, "Card({self:?})")
         }
     }
 }
@@ -107,7 +107,7 @@ fn total_winnings(mut hands: Vec<Hand>) -> u32 {
 fn parse_input(filename: &str) -> Vec<Hand> {
     let mut hands = vec![];
     for line in read_to_string(filename).unwrap().lines() {
-        let [unparsed_hand, unparsed_bid] = line.split_whitespace().collect::<Vec<_>>()[..]  else {
+        let [unparsed_hand, unparsed_bid] = line.split_whitespace().collect::<Vec<_>>()[..] else {
             panic!()
         };
         debug_assert_eq!(unparsed_hand.len(), 5);
@@ -127,7 +127,7 @@ fn parse_input(filename: &str) -> Vec<Hand> {
                 'Q' => Card::Q,
                 'K' => Card::K,
                 'A' => Card::A,
-                _ => panic!("Unexpected char {}", char),
+                _ => panic!("Unexpected char {char}"),
             });
         }
         let bid = unparsed_bid.parse::<u16>().unwrap();
