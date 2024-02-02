@@ -47,7 +47,7 @@ fn parse_input(filename: &str) -> Vec<Coordinates> {
         }
     }
 
-    assert!(coordinates.len() > 0);
+    assert!(coordinates.is_empty());
 
     coordinates
 }

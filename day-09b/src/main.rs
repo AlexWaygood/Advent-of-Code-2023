@@ -29,7 +29,7 @@ fn solve(filename: &str) -> i64 {
                 .map(|string| string.parse::<i64>().unwrap())
                 .collect()
         })
-        .map(|v| find_next_value(v))
+        .map(find_next_value)
         .sum()
 }
 

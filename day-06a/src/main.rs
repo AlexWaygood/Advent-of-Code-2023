@@ -26,7 +26,7 @@ impl ScheduledRace {
         let mut middle_reached = false;
         for time_held_down in (1..self.available_time).rev() {
             let hypothetical_attempt = HypotheticalRaceAttempt {
-                time_held_down: time_held_down,
+                time_held_down,
                 available_time: self.available_time,
                 record_distance: self.record_distance,
             };
@@ -44,18 +44,16 @@ impl ScheduledRace {
 }
 
 fn parse_number_list(number_list: &str) -> Vec<u32> {
-    let split_line = number_list.split_whitespace().collect::<Vec<&str>>();
+    let split_line = number_list.split_whitespace().collect::<Vec<_>>();
     let [_, rest @ ..] = &split_line[..] else {
         panic!()
     };
-    rest.iter()
-        .map(|s| s.parse::<u32>().unwrap())
-        .collect::<Vec<u32>>()
+    rest.iter().map(|s| s.parse().unwrap()).collect()
 }
 
 fn parse_input(filename: &str) -> Vec<ScheduledRace> {
     let file_contents = read_to_string(filename).unwrap();
-    let puzzle_input = file_contents.lines().collect::<Vec<&str>>();
+    let puzzle_input = file_contents.lines().collect::<Vec<_>>();
     let [first_line, second_line] = puzzle_input[..] else {
         panic!()
     };
