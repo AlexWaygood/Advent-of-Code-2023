@@ -74,12 +74,9 @@ impl Hand {
 
 impl Ord for Hand {
     fn cmp(&self, other: &Self) -> Ordering {
-        let (our_category, other_category) = (self.category(), other.category());
-        if our_category != other_category {
-            our_category.cmp(&other_category)
-        } else {
-            self.cards.cmp(&other.cards)
-        }
+        self.category()
+            .cmp(&other.category())
+            .then_with(|| self.cards.cmp(&other.cards))
     }
 }
 
