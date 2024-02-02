@@ -17,13 +17,13 @@ fn upper_and_lower(i: usize, num_rows_or_cols: usize) -> (usize, usize) {
     (upper, lower)
 }
 
-fn reversed_slice(seq: &Vec<String>, i: usize, upper: usize) -> Vec<String> {
+fn reversed_slice(seq: &[String], i: usize, upper: usize) -> Vec<String> {
     let mut slice = Vec::from_iter(seq[i..upper].iter().map(|s| s.to_owned()));
     slice.reverse();
     slice
 }
 
-fn find_score(pattern: &Vec<String>) -> u32 {
+fn find_score(pattern: &[String]) -> u32 {
     let num_rows = pattern.len();
     for i in 1..num_rows {
         let (upper, lower) = upper_and_lower(i, num_rows);

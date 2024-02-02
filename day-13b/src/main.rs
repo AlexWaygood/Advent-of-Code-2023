@@ -39,7 +39,7 @@ fn is_match(left: &[RowOrColumn], right: &[RowOrColumn]) -> bool {
     nearly_equal_one_found
 }
 
-fn find_score(pattern: &Vec<String>) -> u32 {
+fn find_score(pattern: &[String]) -> u32 {
     let num_rows = pattern.len();
 
     let rows: Vec<RowOrColumn> = pattern
