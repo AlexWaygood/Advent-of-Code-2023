@@ -9,8 +9,8 @@ struct HypotheticalRaceAttempt {
 impl HypotheticalRaceAttempt {
     fn beats_record(&self) -> bool {
         let speed = self.time_held_down;
-        let remaining_time = self.available_time.wrapping_sub(self.time_held_down);
-        let distance_travelled = speed.wrapping_mul(remaining_time);
+        let remaining_time = self.available_time - self.time_held_down;
+        let distance_travelled = speed * remaining_time;
         distance_travelled > self.record_distance
     }
 }
@@ -59,23 +59,20 @@ fn parse_input(filename: &str) -> Vec<ScheduledRace> {
     };
     let times = parse_number_list(first_line);
     let distances = parse_number_list(second_line);
-    let mut scheduled_races = Vec::<ScheduledRace>::new();
-    for (time, distance) in zip(times, distances) {
-        scheduled_races.push(ScheduledRace {
+    zip(times, distances)
+        .map(|(time, distance)| ScheduledRace {
             available_time: time,
             record_distance: distance,
         })
-    }
-    scheduled_races
+        .collect()
 }
 
 fn solve(filename: &str) -> u32 {
     let scheduled_races = parse_input(filename);
-    let mut answer: u32 = 1;
-    for race in scheduled_races {
-        answer *= race.ways_to_win();
-    }
-    answer
+    scheduled_races
+        .iter()
+        .map(|race| race.ways_to_win())
+        .product()
 }
 
 fn main() {
