@@ -3,6 +3,9 @@ use std::collections::HashSet;
 use std::fs::read_to_string;
 use std::ops::Range;
 
+use once_cell::sync::Lazy;
+use regex::Regex;
+
 fn gather_surrounding_chars(
     loc_range: Range<usize>,
     lineno: usize,
@@ -35,8 +38,9 @@ fn is_part_number(loc_range: Range<usize>, lineno: usize, line: &str, all_lines:
 }
 
 fn gather_part_numbers_from_line(lineno: usize, line: &str, all_lines: &[&str]) -> Vec<u32> {
-    let number_re = regex::Regex::new(r"\d+").expect("Thought this would be a valid regex");
-    number_re
+    static NUMBER_RE: Lazy<Regex> =
+        Lazy::new(|| Regex::new(r"\d+").expect("Thought this would be a valid regex"));
+    NUMBER_RE
         .find_iter(line)
         .filter(|needle| is_part_number(needle.range(), lineno, line, all_lines))
         .map(|needle| {

@@ -1,6 +1,9 @@
 use std::cmp::min;
 use std::fs::read_to_string;
 
+use once_cell::sync::Lazy;
+use regex::Regex;
+
 fn read_input(filename: &str) -> String {
     read_to_string(filename).unwrap_or_else(|_| panic!("Expected {filename} to exist"))
 }
@@ -11,7 +14,8 @@ fn get_gear_ratio(index: usize, all_lines: &[&str], lineno: usize, line_length: 
     if c != '*' {
         return 0;
     }
-    let number_re = regex::Regex::new(r"\d{1,3}").expect("Expected this to be a valid regex");
+    static NUMBER_RE: Lazy<Regex> =
+        Lazy::new(|| Regex::new(r"\d{1,3}").expect("Expected this to be a valid regex"));
     let range_to_search = index.saturating_sub(3)..=min(index + 3, line_length);
     let haystacks = [
         &line[range_to_search.clone()],
@@ -20,7 +24,7 @@ fn get_gear_ratio(index: usize, all_lines: &[&str], lineno: usize, line_length: 
     ];
     let matches: Vec<_> = haystacks
         .iter()
-        .flat_map(|haystack| number_re.find_iter(haystack))
+        .flat_map(|haystack| NUMBER_RE.find_iter(haystack))
         .filter(|m| (2..=4).any(|i| m.range().contains(&i)))
         .take(3)
         .collect();

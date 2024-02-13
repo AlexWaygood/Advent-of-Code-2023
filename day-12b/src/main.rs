@@ -4,9 +4,11 @@ use std::fs::read_to_string;
 use std::iter::repeat;
 use std::str::FromStr;
 
-use anyhow::{bail, Context, Ok, Result};
+use anyhow::{bail, Ok, Result};
 use cached::proc_macro::cached;
 use itertools::Itertools;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use strum_macros::EnumIs;
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, EnumIs)]
@@ -170,8 +172,8 @@ fn num_possible_fits(contiguous_broken: Vec<u32>, conditions: Vec<Condition>) ->
 }
 
 fn find_conditions(string: &str) -> Result<Vec<Condition>> {
-    let re = regex::Regex::new(r"\.+").unwrap();
-    let modded_string = re.replace_all(string, ".");
+    static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\.+").unwrap());
+    let modded_string = RE.replace_all(string, ".");
     modded_string
         .trim_matches('.')
         .chars()
@@ -215,13 +217,10 @@ impl FromStr for Row {
     }
 }
 
-fn read_input(filename: &str) -> Result<String> {
-    read_to_string(filename).with_context(|| format!("Expected {filename} to exist!"))
-}
-
 fn solve(filename: &str) -> usize {
-    read_input(filename)
-        .unwrap()
+    let input =
+        read_to_string(filename).unwrap_or_else(|_| panic!("Expected {filename} to exist!"));
+    input
         .lines()
         .map(|line| Row::from_str(line).unwrap().num_possible_arrangements())
         .sum()
