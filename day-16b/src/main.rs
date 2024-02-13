@@ -17,23 +17,12 @@ struct Point {
 
 impl Point {
     fn go(self, direction: Direction) -> Self {
+        let Point { x, y } = self;
         match direction {
-            Direction::Left => Point {
-                x: self.x - 1,
-                ..self
-            },
-            Direction::Right => Point {
-                x: self.x + 1,
-                ..self
-            },
-            Direction::Up => Point {
-                y: self.y - 1,
-                ..self
-            },
-            Direction::Down => Point {
-                y: self.y + 1,
-                ..self
-            },
+            Direction::Left => Self { x: x - 1, y },
+            Direction::Right => Self { x: x + 1, y },
+            Direction::Up => Self { x, y: y - 1 },
+            Direction::Down => Self { x, y: y + 1 },
         }
     }
 }
